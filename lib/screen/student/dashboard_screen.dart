@@ -31,6 +31,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // รายการงานสัปดาห์นี้ (unused field removed)
 
+  // รายชื่อโครงงานทั้งหมดที่มีจำลองสำหรับการสลับ
+  final List<String> _myProjects = [];
+
   // Mock user data
   // final Map<String, dynamic> _userData = {'avatarEmoji': '🧑‍💻'}; // Replaced with Firebase data
 
