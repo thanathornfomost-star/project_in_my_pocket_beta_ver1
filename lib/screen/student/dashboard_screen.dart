@@ -20,8 +20,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _activeNavIndex = 0;
   String? _activeProjectId;
   // ลำดับเมนูด้านล่างสุด (0: Home, 1: Learn, 2: Tasks, 3: Chat, 4: Profile)
-  // bool _hasProject = true; // Replaced with StreamBuilder logic
-  final String _projectHealth = 'safe'; // safe, warning, late
 
   // ข้อมูลโครงงานเริ่มต้นสำหรับการนำเสนอ
   // Map<String, dynamic> _activeProject = {
@@ -40,58 +38,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Mock user data
   // final Map<String, dynamic> _userData = {'avatarEmoji': '🧑‍💻'}; // Replaced with Firebase data
-
-  Color _getHealthBgColor() {
-    switch (_projectHealth) {
-      case 'safe':
-        return const Color(0xFFDCFCE7); // เขียวอ่อน
-      case 'warning':
-        return const Color(0xFFFEF3C7); // เหลืองอ่อน
-      case 'late':
-        return const Color(0xFFFEE2E2); // แดงอ่อน
-      default:
-        return const Color(0xFFDCFCE7);
-    }
-  }
-
-  Color _getHealthTextColor() {
-    switch (_projectHealth) {
-      case 'safe':
-        return const Color(0xFF15803D); // เขียวเข้ม
-      case 'warning':
-        return const Color(0xFFB45309); // เหลืองเข้ม
-      case 'late':
-        return const Color(0xFFB91C1C); // แดงเข้ม
-      default:
-        return const Color(0xFF15803D);
-    }
-  }
-
-  String _getHealthText() {
-    switch (_projectHealth) {
-      case 'safe':
-        return "ปลอดภัย (ตาม Milestone)";
-      case 'warning':
-        return "ควรเร่ง (เลยกำหนดบางส่วน)";
-      case 'late':
-        return "ล่าช้า (จำเป็นต้องปรับแผนใหม่)";
-      default:
-        return "ปลอดภัย (ตาม Milestone)";
-    }
-  }
-
-  IconData _getHealthIcon() {
-    switch (_projectHealth) {
-      case 'safe':
-        return Icons.check_circle_rounded;
-      case 'warning':
-        return Icons.warning_rounded;
-      case 'late':
-        return Icons.error_rounded;
-      default:
-        return Icons.check_circle_rounded;
-    }
-  }
 
   String _generateInviteCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -266,32 +212,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: _getHealthBgColor(),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: _getHealthTextColor().withAlpha(38),
-                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            _getHealthIcon(),
-                            color: _getHealthTextColor(),
-                            size: 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _getHealthText(),
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: _getHealthTextColor(),
-                            ),
-                          ),
-                        ],
+                      const Text(
+                        "ความคืบหน้าโครงงาน",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -303,10 +243,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 height: 8,
                                 child: LinearProgressIndicator(
                                   value: progress,
-                                  backgroundColor: _getHealthTextColor()
-                                      .withAlpha(38),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getHealthTextColor(),
+                                  backgroundColor: const Color(0xFFE0E7FF),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF4F46E5),
                                   ),
                                 ),
                               ),
@@ -315,10 +254,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(width: 12),
                           Text(
                             "${(progress * 100).toInt()}%",
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: _getHealthTextColor(),
+                              color: Color(0xFF4F46E5),
                             ),
                           ),
                         ],
@@ -1458,14 +1397,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }
 
-            // Sort members to put the owner first
+            // Sort members to put teachers first, then the owner
             final members = snapshot.data!.docs.toList();
             members.sort((a, b) {
-              if (a.id == ownerUid) return -1;
-              if (b.id == ownerUid) return 1;
-              // Optional: sort by name alphabetically for other members
-              final aName = (a.data() as Map<String, dynamic>)['name'] ?? '';
-              final bName = (b.data() as Map<String, dynamic>)['name'] ?? '';
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aIsTeacher = (aData['role'] ?? 'student') == 'teacher';
+              final bIsTeacher = (bData['role'] ?? 'student') == 'teacher';
+              final aIsOwner = a.id == ownerUid;
+              final bIsOwner = b.id == ownerUid;
+
+              if (aIsTeacher && !bIsTeacher) return -1;
+              if (!aIsTeacher && bIsTeacher) return 1;
+
+              if (aIsOwner && !bIsOwner) return -1;
+              if (!aIsOwner && bIsOwner) return 1;
+
+              final aName = aData['name'] ?? '';
+              final bName = bData['name'] ?? '';
               return aName.compareTo(bName);
             });
 
@@ -1482,107 +1431,114 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: members.length,
-                separatorBuilder: (context, index) =>
-                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                itemBuilder: (context, index) {
-                  final memberData =
-                      members[index].data() as Map<String, dynamic>;
-                  final String name = memberData['name'] ?? 'ไม่มีชื่อ';
-                  final String email = memberData['email'] ?? 'ไม่มีอีเมล';
-                  final String emoji = memberData['avatarEmoji'] ?? '🧑‍💻';
-                  final bool isOwner = members[index].id == ownerUid;
-                  final String role = memberData['role'] ?? 'student';
-                  final bool isTeacher = role == 'teacher';
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: members.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  itemBuilder: (context, index) {
+                    final memberData =
+                        members[index].data() as Map<String, dynamic>;
+                    final String name = memberData['name'] ?? 'ไม่มีชื่อ';
+                    final String email = memberData['email'] ?? 'ไม่มีอีเมล';
+                    final String emoji = memberData['avatarEmoji'] ?? '🧑‍💻';
+                    final bool isOwner = members[index].id == ownerUid;
+                    final String role = memberData['role'] ?? 'student';
+                    final bool isTeacher = role == 'teacher';
 
-                  List<Widget> trailingBadges = [];
+                    List<Widget> trailingBadges = [];
 
-                  if (isTeacher) {
-                    trailingBadges.add(
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEE2E2), // red-100
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'ครูที่ปรึกษา',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFB91C1C), // red-700
+                    if (isTeacher) {
+                      trailingBadges.add(
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2), // red-100
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'ครูที่ปรึกษา',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFB91C1C), // red-700
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }
-
-                  if (isOwner) {
-                    if (trailingBadges.isNotEmpty) {
-                      trailingBadges.add(const SizedBox(width: 4));
+                      );
                     }
-                    trailingBadges.add(
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7), // yellow-100
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'ผู้สร้าง',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF92400E), // yellow-800
+
+                    if (isOwner) {
+                      if (trailingBadges.isNotEmpty) {
+                        trailingBadges.add(const SizedBox(width: 4));
+                      }
+                      trailingBadges.add(
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7), // yellow-100
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'ผู้สร้าง',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF92400E), // yellow-800
+                            ),
                           ),
                         ),
+                      );
+                    }
+
+                    return Container(
+                      color: isTeacher ? const Color(0xFFFEF2F2) : null,
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child:
+                                Text(emoji, style: const TextStyle(fontSize: 20)),
+                          ),
+                        ),
+                        title: Text(
+                          name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          email,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        trailing: trailingBadges.isNotEmpty
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: trailingBadges,
+                              )
+                            : null,
                       ),
                     );
-                  }
-
-                  return ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF1F5F9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(emoji, style: const TextStyle(fontSize: 20)),
-                      ),
-                    ),
-                    title: Text(
-                      name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      email,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    trailing: trailingBadges.isNotEmpty
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: trailingBadges,
-                          )
-                        : null,
-                  );
-                },
+                  },
+                ),
               ),
             );
           },
