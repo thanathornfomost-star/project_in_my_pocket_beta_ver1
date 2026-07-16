@@ -19,7 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _activeNavIndex = 0;
   // ลำดับเมนูด้านล่างสุด (0: Home, 1: Learn, 2: Tasks, 3: Chat, 4: Profile)
   bool _hasProject = true; // Mock state: true = has project, false = empty
-  String _projectHealth = 'safe'; // safe, warning, late
+  final String _projectHealth = 'safe'; // safe, warning, late
 
   // ข้อมูลโครงงานเริ่มต้นสำหรับการนำเสนอ
   Map<String, dynamic> _activeProject = {
@@ -889,30 +889,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showDemoControlPanel() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                "🛠️ แผงทดสอบจำลองข้อมูล (สำหรับส่งประกวด/ตรวจงาน)",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              const Divider(),
-              // ... (rest of the demo panel code)
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   void _showJoinProjectDialog() {
     final codeController = TextEditingController();
