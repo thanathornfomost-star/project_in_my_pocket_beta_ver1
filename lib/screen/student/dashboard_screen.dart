@@ -1099,14 +1099,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 final projectDoc = projects[index];
                 final projectData = projectDoc.data() as Map<String, dynamic>;
+                final projectName = projectData['name_th'] ?? 'โครงงานไม่มีชื่อ';
                 return ListTile(
                   leading: const Icon(
                     Icons.folder_outlined,
                     color: Color(0xFF64748B),
                   ),
                   title: Text(
-                    projectData['name_th'] ?? 'โครงงานไม่มีชื่อ',
+                    projectName,
                     style: const TextStyle(fontSize: 14),
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete_outline, color: Colors.red[400]),
+                    tooltip: 'ลบโครงงาน',
+                    onPressed: () {
+                      Navigator.pop(context); // Close the selection dialog
+                      _deleteProject(projectDoc.id, projectName);
+                    },
                   ),
                   onTap: () {
                     setState(() {
@@ -1260,38 +1269,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- TEMPORARY FUNCTION TO DELETE ALL TASKS ---
-  // !! REMOVE THIS AFTER USE !!
-  Future<void> _deleteAllTasksFromAllProjects() async {
+  Future<void> _deleteProject(String projectId, String projectName) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ยืนยันการลบโครงงาน'),
+        content: Text(
+            'คุณต้องการลบโครงงาน "$projectName" ใช่หรือไม่? การกระทำนี้จะลบข้อมูลและงานทั้งหมดที่เกี่ยวข้องอย่างถาวร'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('ยืนยันลบ',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('กำลังลบงานทั้งหมด...')),
+      SnackBar(content: Text('กำลังลบโครงงาน "$projectName"...')),
     );
 
     final firestore = FirebaseFirestore.instance;
+    final projectRef = firestore.collection('Events').doc(projectId);
+
     try {
-      final projectsSnapshot = await firestore.collection('Events').get();
-      int totalDeleted = 0;
-
-      for (final projectDoc in projectsSnapshot.docs) {
-        final tasksSnapshot =
-            await projectDoc.reference.collection('tasks').get();
-
-        if (tasksSnapshot.docs.isNotEmpty) {
-          final batch = firestore.batch();
-          for (final taskDoc in tasksSnapshot.docs) {
-            batch.delete(taskDoc.reference);
-          }
-          await batch.commit();
-          totalDeleted += tasksSnapshot.size;
-          debugPrint(
-              'Deleted ${tasksSnapshot.size} tasks from project ${projectDoc.id}');
+      // Delete all tasks in the 'tasks' subcollection
+      final tasksSnapshot = await projectRef.collection('tasks').get();
+      if (tasksSnapshot.docs.isNotEmpty) {
+        final batch = firestore.batch();
+        for (final taskDoc in tasksSnapshot.docs) {
+          batch.delete(taskDoc.reference);
         }
+        await batch.commit();
       }
+
+      // Delete the project document itself
+      await projectRef.delete();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ลบงานทั้งหมด $totalDeleted รายการสำเร็จ!'),
+            content: Text('ลบโครงงาน "$projectName" สำเร็จแล้ว'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1300,14 +1323,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
+            content: Text('เกิดข้อผิดพลาดในการลบโครงงาน: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
-  // --- END OF TEMPORARY FUNCTION ---
 
   Widget _buildQuickActionCard(
     String icon,
@@ -1400,32 +1422,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             Row(
               children: [
-                // --- TEMPORARY BUTTON TO DELETE ALL TASKS ---
-                // !! REMOVE THIS AFTER USE !!
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                  tooltip: 'ลบงานทั้งหมดในทุกโครงงาน',
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('ยืนยันการลบ'),
-                        content: const Text(
-                            'คุณต้องการลบ "งานทั้งหมด" ออกจาก "ทุกโครงงาน" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('ยกเลิก')),
-                          TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('ยืนยัน',
-                                  style: TextStyle(color: Colors.red))),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) _deleteAllTasksFromAllProjects();
-                  },
-                ),
                 IconButton(
                   icon: const Icon(
                     Icons.notifications_outlined,
