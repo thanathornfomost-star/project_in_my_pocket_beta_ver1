@@ -27,22 +27,21 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
     super.dispose();
   }
 
-  Future<void> _sendMessage() async {
+  void _sendMessage() async {
     if (_messageController.text.trim().isEmpty || _currentUser == null) {
       return;
     }
-
-    final messageText = _messageController.text.trim();
-    _messageController.clear();
 
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(_currentUser!.uid)
         .get();
     final userData = userDoc.data();
-    final senderName = userData?['name'] ?? 'Unknown User';
-    final senderEmoji = userData?['avatarEmoji'] ?? '👤';
-    final senderRole = userData?['role'] ?? 'student';
+
+    if (userData == null) return; // ไม่พบข้อมูลผู้ใช้
+
+    final messageText = _messageController.text.trim();
+    _messageController.clear();
 
     await FirebaseFirestore.instance
         .collection('Events')
@@ -50,26 +49,40 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
         .collection('messages')
         .add({
           'text': messageText,
+          'createdAt': Timestamp.now(),
           'senderId': _currentUser!.uid,
-          'senderName': senderName,
-          'senderEmoji': senderEmoji,
-          'senderRole': senderRole,
-          'timestamp': FieldValue.serverTimestamp(),
+          'senderName': userData['name'] ?? 'ผู้ใช้ไม่มีชื่อ',
+          'senderRole': userData['role'] ?? 'student',
+          'senderEmoji': userData['avatarEmoji'] ?? '🧑‍💻',
         });
+  }
+
+  Widget _buildRoleBadge(String role) {
+    if (role == 'teacher') {
+      return const Text(
+        ' (ที่ปรึกษา)',
+        style: TextStyle(
+          color: Colors.red,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    } else {
+      return const Text(
+        ' (นักเรียน)',
+        style: TextStyle(
+          color: Colors.blue,
+          fontSize: 12,
+          fontWeight: FontWeight.normal,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.projectName,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.black12,
-      ),
+      appBar: AppBar(title: Text(widget.projectName), elevation: 1),
       body: Column(
         children: [
           Expanded(
@@ -78,7 +91,7 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
                   .collection('Events')
                   .doc(widget.projectId)
                   .collection('messages')
-                  .orderBy('timestamp', descending: true)
+                  .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -86,7 +99,7 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
-                    child: Text('เริ่มการสนทนากับทีมได้เลย!'),
+                    child: Text("ยังไม่มีข้อความ เริ่มการสนทนาได้เลย!"),
                   );
                 }
 
@@ -101,7 +114,90 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
                         messages[index].data() as Map<String, dynamic>;
                     final isMe = messageData['senderId'] == _currentUser?.uid;
 
-                    return _buildMessageBubble(messageData, isMe);
+                    final messageBubble = Container(
+                      margin: EdgeInsets.only(
+                        top: 4,
+                        bottom: 4,
+                        left: isMe ? 64 : 0,
+                        right: isMe ? 0 : 64,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isMe
+                            ? const Color(0xFF4F46E5)
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(12),
+                          topRight: const Radius.circular(12),
+                          bottomLeft: isMe
+                              ? const Radius.circular(12)
+                              : const Radius.circular(0),
+                          bottomRight: isMe
+                              ? const Radius.circular(0)
+                              : const Radius.circular(12),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: isMe
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          if (!isMe)
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                  fontSize: 13,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        messageData['senderName'] ?? 'Unknown',
+                                  ),
+                                  WidgetSpan(
+                                    child: _buildRoleBadge(
+                                      messageData['senderRole'] ?? 'student',
+                                    ),
+                                    alignment: PlaceholderAlignment.middle,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (!isMe) const SizedBox(height: 4),
+                          Text(
+                            messageData['text'],
+                            style: TextStyle(
+                              color: isMe ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2.0),
+                      child: isMe
+                          ? messageBubble
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.grey[300],
+                                  child: Text(
+                                    messageData['senderEmoji'] ?? '👤',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(child: messageBubble),
+                              ],
+                            ),
+                    );
                   },
                 );
               },
@@ -113,143 +209,48 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> messageData, bool isMe) {
-    final senderEmoji = messageData['senderEmoji'] ?? '👤';
-    final senderRole = messageData['senderRole'] ?? 'student';
-    final bool isTeacher = senderRole == 'teacher';
-
-    final messageContent = Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-      decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF4F46E5) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 2,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: isMe
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          if (!isMe)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  messageData['senderName'] ?? 'User',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Color(0xFF4F46E5),
-                  ),
-                ),
-                if (isTeacher) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'ครูที่ปรึกษา',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFB91C1C),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          if (!isMe) const SizedBox(height: 4),
-          Text(
-            messageData['text'] ?? '',
-            style: TextStyle(color: isMe ? Colors.white : Colors.black87),
-          ),
-        ],
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isMe) ...[
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: const Color(0xFFEEF2FF),
-              child: Text(senderEmoji, style: const TextStyle(fontSize: 18)),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Expanded(child: messageContent),
-          if (isMe) ...[
-            const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: const Color(0xFFEEF2FF),
-              child: Text(senderEmoji, style: const TextStyle(fontSize: 18)),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildMessageComposer() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            offset: const Offset(0, -1),
-            blurRadius: 4,
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(20),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              decoration: InputDecoration(
+                hintText: 'พิมพ์ข้อความ...',
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 20,
                 ),
-                child: TextField(
-                  controller: _messageController,
-                  decoration: const InputDecoration.collapsed(
-                    hintText: 'พิมพ์ข้อความ...',
-                  ),
-                  textCapitalization: TextCapitalization.sentences,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
                 ),
               ),
+              onSubmitted: (_) => _sendMessage(),
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.send_rounded, color: Color(0xFF4F46E5)),
-              onPressed: _sendMessage,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.send),
+            color: const Color(0xFF4F46E5),
+            onPressed: _sendMessage,
+          ),
+        ],
       ),
     );
   }

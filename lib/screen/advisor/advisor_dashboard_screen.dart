@@ -72,6 +72,16 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
     );
   }
 
+  void _showComingSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ฟีเจอร์นี้กำลังจะมาในเร็วๆ นี้ (Coming Soon)'),
+        backgroundColor: Colors.blueGrey,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _showJoinProjectDialog() {
     final codeController = TextEditingController();
     bool isLoading = false;
@@ -411,20 +421,8 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
         mainAxisSpacing: 12,
         childAspectRatio: 1.5,
         children: [
-          _buildQuickActionCard(
-            "📅",
-            "ปฏิทินนัดหมาย",
-            onTap: () {
-              // TODO: Navigate to calendar screen
-            },
-          ),
-          _buildQuickActionCard(
-            "✅",
-            "อนุมัติเอกสาร",
-            onTap: () {
-              // TODO: Navigate to document approval screen
-            },
-          ),
+          _buildQuickActionCard("📅", "ปฏิทินนัดหมาย", onTap: _showComingSoon),
+          _buildQuickActionCard("✅", "อนุมัติเอกสาร", onTap: _showComingSoon),
           _buildQuickActionCard(
             "🧑‍🏫",
             "เข้าร่วมด้วยโค้ด",
