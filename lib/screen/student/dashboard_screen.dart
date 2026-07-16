@@ -378,7 +378,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: CircularProgressIndicator(),
                 ));
               }
-
               if (taskSnapshot.hasError) {
                 return Center(
                     child: Padding(
@@ -387,7 +386,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       'เกิดข้อผิดพลาดในการโหลดงาน: ${taskSnapshot.error}'),
                 ));
               }
-
               if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
                 return Container(
                   width: double.infinity,
