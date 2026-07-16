@@ -19,6 +19,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _activeNavIndex = 0;
+  String? _activeProjectId;
   // ลำดับเมนูด้านล่างสุด (0: Home, 1: Learn, 2: Tasks, 3: Chat, 4: Profile)
   // bool _hasProject = true; // Replaced with StreamBuilder logic
   final String _projectHealth = 'safe'; // safe, warning, late
@@ -193,9 +194,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final userProjects = projectSnapshot.data?.docs ?? [];
             final bool hasProject = userProjects.isNotEmpty;
             Map<String, dynamic>? activeProject;
+
             if (hasProject) {
-              activeProject = userProjects.first.data() as Map<String, dynamic>;
-              activeProject['id'] = userProjects.first.id; // Add document ID
+              // If no active project is selected, or if the selected one is gone, default to the first one.
+              if (_activeProjectId == null ||
+                  !userProjects.any((doc) => doc.id == _activeProjectId)) {
+                _activeProjectId = userProjects.first.id;
+              }
+
+              // Find the active project from the list.
+              final activeProjectDoc = userProjects.firstWhere(
+                (doc) => doc.id == _activeProjectId,
+              );
+
+              activeProject = activeProjectDoc.data() as Map<String, dynamic>;
+              activeProject['id'] = activeProjectDoc.id;
+            } else {
+              _activeProjectId = null; // No projects, so no active ID.
             }
 
             return Scaffold(
@@ -205,6 +220,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 hasProject,
                 activeProject?['name_th'] ?? 'ยังไม่มีโครงงาน',
                 userData['avatarEmoji'] ?? '🧑‍💻',
+                userProjects,
+                userData,
               ),
               body: _buildPageForIndex(
                 _activeNavIndex,
@@ -236,7 +253,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             decoration: BoxDecoration(
               color: _getHealthBgColor(),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _getHealthTextColor().withAlpha(38)),
+              border: Border.all(
+                color: _getHealthTextColor().withAlpha(38),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,9 +288,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           height: 8,
                           child: LinearProgressIndicator(
                             value: progress,
-                            backgroundColor: _getHealthTextColor().withAlpha(
-                              38,
-                            ),
+                            backgroundColor:
+                                _getHealthTextColor().withAlpha(38),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               _getHealthTextColor(),
                             ),
@@ -338,15 +356,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             child: Column(
               children: [
-                Icon(Icons.post_add, size: 48, color: Colors.grey.shade400),
+                Icon(Icons.post_add,
+                    size: 48, color: Colors.grey.shade400),
                 const SizedBox(height: 16),
                 const Text(
                   "ยังไม่มีงานในโครงงานนี้",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
-                  ),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black54),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -367,7 +385,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: const Color(0xFF4F46E5),
                     foregroundColor: Colors.white,
                   ),
-                ),
+                )
               ],
             ),
           ),
@@ -766,118 +784,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onPressed: isLoadingInSheet
                                 ? null
                                 : () async {
-                                    debugPrint(
-                                      "--- [1] 'สร้าง' button pressed ---",
-                                    );
-                                    setModalState(
-                                      () => isLoadingInSheet = true,
-                                    );
+                              debugPrint("--- [1] 'สร้าง' button pressed ---");
+                              setModalState(() => isLoadingInSheet = true);
 
-                                    if (ctrlTh.text.isEmpty ||
-                                        localRange == null) {
-                                      debugPrint(
-                                        "--- [!] Validation failed: Project name or date range is missing.",
-                                      );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'กรุณากรอกชื่อโครงงานและเลือกระยะเวลา',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                      setModalState(
-                                        () => isLoadingInSheet = false,
-                                      );
-                                      return;
-                                    }
+                              if (ctrlTh.text.isEmpty || localRange == null) {
+                                debugPrint(
+                                    "--- [!] Validation failed: Project name or date range is missing.");
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'กรุณากรอกชื่อโครงงานและเลือกระยะเวลา',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                setModalState(() => isLoadingInSheet = false);
+                                return;
+                              }
 
-                                    final user =
-                                        FirebaseAuth.instance.currentUser;
-                                    if (user == null) {
-                                      debugPrint(
-                                        "--- [!] Error: User is not authenticated.",
-                                      );
-                                      setModalState(
-                                        () => isLoadingInSheet = false,
-                                      );
-                                      return;
-                                    }
-                                    debugPrint(
-                                      "--- [2] User is authenticated: ${user.uid} ---",
-                                    );
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user == null) {
+                                debugPrint(
+                                    "--- [!] Error: User is not authenticated.");
+                                setModalState(() => isLoadingInSheet = false);
+                                return;
+                              }
+                              debugPrint(
+                                  "--- [2] User is authenticated: ${user.uid} ---");
 
-                                    final newProjectData = {
-                                      'name_th': ctrlTh.text.trim(),
-                                      'name_en': ctrlEn.text.trim(),
-                                      'type': localType,
-                                      'startDate': Timestamp.fromDate(
-                                        localRange!.start,
-                                      ),
-                                      'endDate': Timestamp.fromDate(
-                                        localRange!.end,
-                                      ),
-                                      'inviteCode': _generateInviteCode(),
-                                      'ownerUid': user.uid,
-                                      'memberUids': [user.uid],
-                                      'createdAt': FieldValue.serverTimestamp(),
-                                      'members': [
-                                        {
-                                          'uid': user.uid,
-                                          'name': userData['name'],
-                                          'emoji': userData['avatarEmoji'],
-                                        },
-                                      ],
-                                    };
-
-                                    debugPrint(
-                                      "--- [3] Preparing to upload data: $newProjectData ---",
-                                    );
-
-                                    try {
-                                      await FirebaseFirestore.instance
-                                          .collection('Events')
-                                          .add(newProjectData);
-                                      debugPrint(
-                                        "--- [4] SUCCESS: Data uploaded to Firestore! ---",
-                                      );
-                                      if (mounted) {
-                                        Navigator.pop(context);
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'สร้างโครงงานสำเร็จเรียบร้อย!',
-                                            ),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      debugPrint(
-                                        "--- [!] FIREBASE ERROR: $e ---",
-                                      );
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('เกิดข้อผิดพลาด: $e'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    } finally {
-                                      if (mounted) {
-                                        setModalState(
-                                          () => isLoadingInSheet = false,
-                                        );
-                                      }
-                                    }
+                              final newProjectData = {
+                                'name_th': ctrlTh.text.trim(),
+                                'name_en': ctrlEn.text.trim(),
+                                'type': localType,
+                                'startDate': Timestamp.fromDate(
+                                  localRange!.start,
+                                ),
+                                'endDate': Timestamp.fromDate(localRange!.end),
+                                'inviteCode': _generateInviteCode(),
+                                'ownerUid': user.uid,
+                                'memberUids': [user.uid],
+                                'createdAt': FieldValue.serverTimestamp(),
+                                'members': [
+                                  {
+                                    'uid': user.uid,
+                                    'name': userData['name'],
+                                    'emoji': userData['avatarEmoji'],
                                   },
+                                ],
+                              };
+
+                              debugPrint(
+                                  "--- [3] Preparing to upload data: $newProjectData ---");
+
+                              try {
+                                await FirebaseFirestore.instance
+                                    .collection('Events')
+                                    .add(newProjectData);
+                                debugPrint(
+                                    "--- [4] SUCCESS: Data uploaded to Firestore! ---");
+                                if (mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'สร้างโครงงานสำเร็จเรียบร้อย!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                debugPrint(
+                                    "--- [!] FIREBASE ERROR: $e ---");
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('เกิดข้อผิดพลาด: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setModalState(
+                                      () => isLoadingInSheet = false);
+                                }
+                              }
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4F46E5),
                               shape: RoundedRectangleBorder(
@@ -895,9 +888,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   )
                                 : const Text(
                                     "สร้าง",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
                                   ),
                           ),
                         ),
@@ -913,31 +905,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showProjectSelectionDropdown() {
+  void _showProjectSelectionDropdown(
+    List<QueryDocumentSnapshot> projects,
+    Map<String, dynamic> userData,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text(
-            'เลือกโครงงานที่มีอยู่',
+            'เลือกโครงงาน',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           content: SizedBox(
             width: double.maxFinite,
-            child: ListView.builder(
+            child: ListView.separated(
               shrinkWrap: true,
-              itemCount: _myProjects.length,
+              itemCount: projects.length + 1, // +1 for "Create New"
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, indent: 16, endIndent: 16),
               itemBuilder: (context, index) {
+                if (index == projects.length) {
+                  // Last item is the "Create New Project" button
+                  return ListTile(
+                    leading: const Icon(
+                      Icons.add_circle_outline,
+                      color: Color(0xFF4F46E5),
+                    ),
+                    title: const Text(
+                      "สร้างโครงงานใหม่",
+                      style: TextStyle(fontSize: 14, color: Color(0xFF4F46E5)),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // Close the selection dialog
+                      _showCreateProjectBottomSheet(
+                        userData,
+                      ); // Open the create sheet
+                    },
+                  );
+                }
+
+                final projectDoc = projects[index];
+                final projectData = projectDoc.data() as Map<String, dynamic>;
                 return ListTile(
-                  leading: const Icon(Icons.folder, color: Color(0xFF4F46E5)),
+                  leading: const Icon(
+                    Icons.folder_outlined,
+                    color: Color(0xFF64748B),
+                  ),
                   title: Text(
-                    _myProjects[index],
+                    projectData['name_th'] ?? 'โครงงานไม่มีชื่อ',
                     style: const TextStyle(fontSize: 14),
                   ),
                   onTap: () {
                     setState(() {
-                      // This needs a more robust implementation to switch active project
-                      // For now, just pop
+                      _activeProjectId = projectDoc.id;
                     });
                     Navigator.pop(context);
                   },
@@ -945,12 +966,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ปิด'),
-            ),
-          ],
         );
       },
     );
@@ -1139,6 +1154,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool hasProject,
     String projectTitle,
     String userAvatar,
+    List<QueryDocumentSnapshot> projects,
+    Map<String, dynamic> userData,
   ) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(56.0),
@@ -1153,7 +1170,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Expanded(
               child: GestureDetector(
-                onTap: hasProject ? _showProjectSelectionDropdown : null,
+                onTap: hasProject
+                    ? () => _showProjectSelectionDropdown(projects, userData)
+                    : null,
                 child: Row(
                   children: [
                     Flexible(
