@@ -421,7 +421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF4F46E5).withOpacity(0.2)
+                        ? const Color(0xFF4F46E5).withValues(alpha: 0.2)
                         : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(25),
                     border: isSelected
