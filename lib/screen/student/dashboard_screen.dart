@@ -614,6 +614,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _showInviteFriendDialog(activeProject['inviteCode']);
                   },
                 ),
+                _buildQuickActionCard(
+                  "🧑‍🏫",
+                  "เชิญที่ปรึกษา",
+                  onTap: () {
+                    // The same dialog can be used for inviting advisors
+                    _showInviteFriendDialog(activeProject['inviteCode']);
+                  },
+                ),
               ],
             ),
           ),
@@ -714,7 +722,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               height: 52,
               child: OutlinedButton.icon(
-                onPressed: () => _showJoinProjectDialog(userData),
+                onPressed: _showJoinProjectDialog,
                 icon: const Icon(Icons.group_add_outlined),
                 label: const Text(
                   "เข้าร่วมโครงงาน",
@@ -1019,7 +1027,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           'uid': user.uid,
                                           'name': userData['name'],
                                           'emoji': userData['avatarEmoji'],
-                                          'role': userData['role'],
                                         },
                                       ],
                                     };
@@ -1147,24 +1154,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 final projectDoc = projects[index];
                 final projectData = projectDoc.data() as Map<String, dynamic>;
-                final projectName =
-                    projectData['name_th'] ?? 'โครงงานไม่มีชื่อ';
                 return ListTile(
                   leading: const Icon(
                     Icons.folder_outlined,
                     color: Color(0xFF64748B),
                   ),
                   title: Text(
-                    projectName,
+                    projectData['name_th'] ?? 'โครงงานไม่มีชื่อ',
                     style: const TextStyle(fontSize: 14),
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete_outline, color: Colors.red[400]),
-                    tooltip: 'ลบโครงงาน',
-                    onPressed: () {
-                      Navigator.pop(context); // Close the selection dialog
-                      _deleteProject(projectDoc.id, projectName);
-                    },
                   ),
                   onTap: () {
                     setState(() {
@@ -1181,170 +1178,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showJoinProjectDialog(Map<String, dynamic> userData) {
+  void _showJoinProjectDialog() {
     final codeController = TextEditingController();
-    bool isLoadingInDialog = false;
-
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent closing while loading
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'เข้าร่วมโครงงาน',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'กรอกโค้ดเชิญที่ได้รับจากเพื่อน เพื่อเข้าร่วมทีม (Mockup)',
               ),
-              title: const Text(
-                'เข้าร่วมโครงงาน',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'กรอกโค้ดเชิญที่ได้รับเพื่อเข้าร่วมโครงงาน',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: codeController,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'PJM-XXXXXX',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isLoadingInDialog
-                      ? null
-                      : () => Navigator.pop(context),
-                  child: const Text('ยกเลิก'),
+              const SizedBox(height: 24),
+              TextField(
+                controller: codeController,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
                 ),
-                ElevatedButton(
-                  onPressed: isLoadingInDialog
-                      ? null
-                      : () async {
-                          final inviteCode = codeController.text.trim();
-                          if (inviteCode.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('กรุณากรอกโค้ดเชิญ'),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                            return;
-                          }
-
-                          setDialogState(() => isLoadingInDialog = true);
-
-                          final firestore = FirebaseFirestore.instance;
-                          final user = FirebaseAuth.instance.currentUser;
-
-                          if (user == null) {
-                            setDialogState(() => isLoadingInDialog = false);
-                            return;
-                          }
-
-                          try {
-                            final projectQuery = await firestore
-                                .collection('Events')
-                                .where('inviteCode', isEqualTo: inviteCode)
-                                .limit(1)
-                                .get();
-
-                            if (projectQuery.docs.isEmpty) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('ไม่พบโครงงานสำหรับโค้ดนี้'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            } else {
-                              final projectDoc = projectQuery.docs.first;
-                              final List<dynamic> memberUids =
-                                  projectDoc.data()['memberUids'] ?? [];
-
-                              if (memberUids.contains(user.uid)) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'คุณเป็นสมาชิกของโครงงานนี้อยู่แล้ว',
-                                      ),
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                  );
-                                }
-                              } else {
-                                final newMemberData = {
-                                  'uid': user.uid,
-                                  'name': userData['name'],
-                                  'emoji': userData['avatarEmoji'],
-                                  'role': userData['role'],
-                                };
-
-                                await projectDoc.reference.update({
-                                  'memberUids': FieldValue.arrayUnion([
-                                    user.uid,
-                                  ]),
-                                  'members': FieldValue.arrayUnion([
-                                    newMemberData,
-                                  ]),
-                                });
-
-                                if (mounted) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('เข้าร่วมโครงงานสำเร็จ!'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              }
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('เกิดข้อผิดพลาด: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setDialogState(() => isLoadingInDialog = false);
-                            }
-                          }
-                        },
-                  child: isLoadingInDialog
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('เข้าร่วม'),
+                decoration: InputDecoration(
+                  hintText: 'PJM-XXXXXX',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (codeController.text.isNotEmpty) {
+                  setState(() {
+                    // _hasProject = true;
+                    // _activeProject['name_th'] = "โครงงานที่เข้าร่วม (Mock)";
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('เข้าร่วมโครงงานสำเร็จ!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
+              child: const Text('เข้าร่วม'),
+            ),
+          ],
         );
       },
     );
@@ -1421,54 +1315,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<void> _deleteProject(String projectId, String projectName) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบโครงงาน'),
-        content: Text(
-          'คุณต้องการลบโครงงาน "$projectName" ใช่หรือไม่? การกระทำนี้จะลบข้อมูลและงานทั้งหมดที่เกี่ยวข้องอย่างถาวร',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('ยืนยันลบ', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
+  // --- TEMPORARY FUNCTION TO DELETE ALL TASKS ---
+  // !! REMOVE THIS AFTER USE !!
+  Future<void> _deleteAllTasksFromAllProjects() async {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('กำลังลบโครงงาน "$projectName"...')));
+    ).showSnackBar(const SnackBar(content: Text('กำลังลบงานทั้งหมด...')));
 
     final firestore = FirebaseFirestore.instance;
-    final projectRef = firestore.collection('Events').doc(projectId);
-
     try {
-      // Delete all tasks in the 'tasks' subcollection
-      final tasksSnapshot = await projectRef.collection('tasks').get();
-      if (tasksSnapshot.docs.isNotEmpty) {
-        final batch = firestore.batch();
-        for (final taskDoc in tasksSnapshot.docs) {
-          batch.delete(taskDoc.reference);
-        }
-        await batch.commit();
-      }
+      final projectsSnapshot = await firestore.collection('Events').get();
+      int totalDeleted = 0;
 
-      // Delete the project document itself
-      await projectRef.delete();
+      for (final projectDoc in projectsSnapshot.docs) {
+        final tasksSnapshot = await projectDoc.reference
+            .collection('tasks')
+            .get();
+
+        if (tasksSnapshot.docs.isNotEmpty) {
+          final batch = firestore.batch();
+          for (final taskDoc in tasksSnapshot.docs) {
+            batch.delete(taskDoc.reference);
+          }
+          await batch.commit();
+          totalDeleted += tasksSnapshot.size;
+          debugPrint(
+            'Deleted ${tasksSnapshot.size} tasks from project ${projectDoc.id}',
+          );
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ลบโครงงาน "$projectName" สำเร็จแล้ว'),
+            content: Text('ลบงานทั้งหมด $totalDeleted รายการสำเร็จ!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1477,13 +1357,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการลบโครงงาน: $e'),
+            content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
+  // --- END OF TEMPORARY FUNCTION ---
 
   Widget _buildQuickActionCard(
     String icon,
@@ -1576,14 +1457,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             Row(
               children: [
+                // --- TEMPORARY BUTTON TO DELETE ALL TASKS ---
+                // !! REMOVE THIS AFTER USE !!
                 IconButton(
-                  icon: const Icon(
-                    Icons.group_add_outlined,
-                    color: Color(0xFF64748B),
-                  ),
-                  tooltip: 'เข้าร่วมโครงงาน',
-                  onPressed: () {
-                    _showJoinProjectDialog(userData);
+                  icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                  tooltip: 'ลบงานทั้งหมดในทุกโครงงาน',
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('ยืนยันการลบ'),
+                        content: const Text(
+                          'คุณต้องการลบ "งานทั้งหมด" ออกจาก "ทุกโครงงาน" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('ยกเลิก'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text(
+                              'ยืนยัน',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) _deleteAllTasksFromAllProjects();
                   },
                 ),
                 IconButton(
