@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
-import 'package:project_in_my_pocket_beta_ver1/main.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/learn_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/profile_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/chat_screen.dart';
@@ -30,11 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   //   'inviteCode': 'PJM-AB12CD',
   // };
 
-  // รายการงานสัปดาห์นี้
-  final List<Map<String, dynamic>> _weeklyTasks = [];
-
-  // รายชื่อโครงงานทั้งหมดที่มีจำลองสำหรับการสลับ
-  final List<String> _myProjects = [];
+  // รายการงานสัปดาห์นี้ (unused field removed)
 
   // Mock user data
   // final Map<String, dynamic> _userData = {'avatarEmoji': '🧑‍💻'}; // Replaced with Firebase data
@@ -244,9 +239,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: LinearProgressIndicator(
                                   value: progress,
                                   backgroundColor: const Color(0xFFE0E7FF),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF4F46E5),
-                                  ),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF4F46E5),
+                                      ),
                                 ),
                               ),
                             ),
@@ -540,11 +536,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _showInviteFriendDialog(activeProject['inviteCode']);
                   },
                 ),
-                _buildQuickActionCard(
-                  "✨",
-                  "เร็วๆ นี้",
-                  isEnabled: false,
-                ),
+                _buildQuickActionCard("✨", "เร็วๆ นี้", isEnabled: false),
               ],
             ),
           ),
@@ -1363,8 +1355,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     // Firestore 'whereIn' query supports a maximum of 30 elements for streams.
-    final List<dynamic> queryableUids =
-        memberUids.length > 30 ? memberUids.sublist(0, 30) : memberUids;
+    final List<dynamic> queryableUids = memberUids.length > 30
+        ? memberUids.sublist(0, 30)
+        : memberUids;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1511,8 +1504,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Center(
-                            child:
-                                Text(emoji, style: const TextStyle(fontSize: 20)),
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 20),
+                            ),
                           ),
                         ),
                         title: Text(
@@ -1633,8 +1628,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ]
               : null,
-          border:
-              isEnabled ? null : Border.all(color: const Color(0xFFE2E8F0)),
+          border: isEnabled ? null : Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1646,8 +1640,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color:
-                    isEnabled ? const Color(0xFF1E293B) : Colors.grey.shade400,
+                color: isEnabled
+                    ? const Color(0xFF1E293B)
+                    : Colors.grey.shade400,
               ),
             ),
           ],
