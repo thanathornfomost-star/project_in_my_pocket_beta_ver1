@@ -105,8 +105,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           };
 
           await userDoc.set(userData);
+
+          // เมื่อสมัครสมาชิกสำเร็จ ให้ปิดหน้านี้ AuthGate จะสลับหน้าจอให้เอง
+          if (mounted) Navigator.of(context).pop();
         }
-        // Navigation is handled by AuthGate
       } on FirebaseAuthException catch (e) {
         String message = 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
         if (e.code == 'weak-password') {
@@ -117,8 +119,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
+        if (mounted) setState(() => _isLoading = false);
       }
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
