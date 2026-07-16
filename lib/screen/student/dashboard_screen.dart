@@ -31,9 +31,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // รายการงานสัปดาห์นี้ (unused field removed)
 
-  // รายชื่อโครงงานทั้งหมดที่มีจำลองสำหรับการสลับ
-  final List<String> _myProjects = [];
-
   // Mock user data
   // final Map<String, dynamic> _userData = {'avatarEmoji': '🧑‍💻'}; // Replaced with Firebase data
 
@@ -385,9 +382,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 final bData = b.data() as Map<String, dynamic>;
                 final aDate = aData['dueDate'] as Timestamp?;
                 final bDate = bData['dueDate'] as Timestamp?;
-                if (aDate == null)
+                if (aDate == null) {
                   return 1; // Put tasks without due date at the end
-                if (bDate == null) return -1;
+                }
+                if (bDate == null) {
+                  return -1;
+                }
                 return aDate.compareTo(bDate);
               });
 
@@ -539,10 +539,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _showInviteFriendDialog(activeProject['inviteCode']);
                   },
                 ),
-<<<<<<< HEAD
-=======
                 _buildQuickActionCard("✨", "เร็วๆ นี้", isEnabled: false),
->>>>>>> 4203964f3dc439443bb76fa58e470a6e878e79df
               ],
             ),
           ),
@@ -1548,11 +1545,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-<<<<<<< HEAD
-  // --- TEMPORARY FUNCTION TO DELETE ALL TASKS ---
-  // !! REMOVE THIS AFTER USE !!
-  Future<void> _deleteAllTasksFromAllProjects() async {
-=======
   Future<void> _deleteProject(String projectId, String projectName) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -1576,7 +1568,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (confirm != true) return;
 
->>>>>>> 4203964f3dc439443bb76fa58e470a6e878e79df
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('กำลังลบโครงงาน "$projectName"...')));
