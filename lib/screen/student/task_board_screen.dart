@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 // --- Data Models (Mockup) ---
@@ -6,81 +7,58 @@ class Member {
   final String id;
   final String name;
   final String emoji;
-  final String role; // 'student' or 'teacher'
 
-  const Member({
-    required this.id,
-    required this.name,
-    required this.emoji,
-    required this.role,
-  });
-}
+  const Member({required this.id, required this.name, required this.emoji});
 
-class Task {
-  final String id;
-  String title;
-  DateTime dueDate;
-  Member? assignedTo;
-  bool isDone;
+  factory Member.fromMap(Map<String, dynamic> map) {
+    return Member(
+      id: map['uid'] ?? '',
+      name: map['name'] ?? 'Unknown',
+      emoji: map['emoji'] ?? '🧑‍💻',
+    );
+  }
 
-  Task({
-    required this.id,
-    required this.title,
-    required this.dueDate,
-    this.assignedTo,
-    this.isDone = false,
-  });
+  Map<String, dynamic> toMap() {
+    return {'uid': id, 'name': name, 'emoji': emoji};
+  }
 }
 
 // --- Main Screen Widget ---
 
 class TaskBoardScreen extends StatefulWidget {
-  const TaskBoardScreen({super.key});
+  final String projectId;
+  const TaskBoardScreen({super.key, required this.projectId});
 
   @override
   State<TaskBoardScreen> createState() => _TaskBoardScreenState();
 }
 
 class _TaskBoardScreenState extends State<TaskBoardScreen> {
-  // Mock Data
-  final List<Member> _teamMembers = [
-    const Member(id: '1', name: 'อลิซ', emoji: '👩‍🎓', role: 'student'),
-    const Member(id: '2', name: 'บ็อบ', emoji: '🧑‍💻', role: 'student'),
-    const Member(id: '3', name: 'ชาลี', emoji: '👨‍🎨', role: 'student'),
-    const Member(id: '4', name: 'อ.เดวิด', emoji: '🧑‍🏫', role: 'teacher'),
-  ];
+  void _showAddTaskDialog() async {
+    List<Member> teamMembers = [];
+    try {
+      final projectDoc = await FirebaseFirestore.instance
+          .collection('Events')
+          .doc(widget.projectId)
+          .get();
+      if (projectDoc.exists) {
+        final membersData =
+            (projectDoc.data()?['members'] as List<dynamic>?) ?? [];
+        teamMembers = membersData.map((m) => Member.fromMap(m)).toList();
+      }
+    } catch (e) {
+      debugPrint("Error fetching members: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่สามารถโหลดรายชื่อสมาชิกได้'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
-  final List<Task> _tasks = [
-    Task(
-      id: 't1',
-      title: 'สรุปบทที่ 3',
-      dueDate: DateTime.now().add(const Duration(days: 2)),
-      assignedTo: const Member(id: '1', name: 'อลิซ', emoji: '👩‍🎓', role: 'student'),
-      isDone: false,
-    ),
-    Task(
-      id: 't2',
-      title: 'ร่วมวัตถุประสงค์ (วิชาเอก)',
-      dueDate: DateTime.now().add(const Duration(days: 1)),
-      assignedTo: const Member(id: '2', name: 'บ็อบ', emoji: '🧑‍💻', role: 'student'),
-      isDone: false,
-    ),
-    Task(
-      id: 't3',
-      title: 'สรุปผลทดลองที่ 1',
-      dueDate: DateTime.now().subtract(const Duration(days: 3)),
-      assignedTo: const Member(id: '1', name: 'อลิซ', emoji: '👩‍🎓', role: 'student'),
-      isDone: true,
-    ),
-    Task(
-      id: 't4',
-      title: 'ออกแบบ UI หน้าแรก',
-      dueDate: DateTime.now().add(const Duration(days: 5)),
-      isDone: false,
-    ),
-  ];
-
-  void _showAddTaskDialog() {
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
     DateTime? selectedDate = DateTime.now();
@@ -217,13 +195,15 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
                           horizontal: 16,
                         ),
                       ),
-                      items: _teamMembers.map((member) {
+                      items: teamMembers.map((member) {
                         return DropdownMenuItem<Member>(
                           value: member,
                           child: Row(
                             children: [
-                              Text(member.emoji,
-                                  style: const TextStyle(fontSize: 18)),
+                              Text(
+                                member.emoji,
+                                style: const TextStyle(fontSize: 18),
+                              ),
                               const SizedBox(width: 8),
                               Text(member.name),
                             ],
@@ -256,19 +236,33 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (formKey.currentState!.validate()) {
-                                final newTask = Task(
-                                  id: DateTime.now().millisecondsSinceEpoch
-                                      .toString(),
-                                  title: titleController.text,
-                                  dueDate: selectedDate!,
-                                  assignedTo: selectedMember,
-                                );
-                                setState(() {
-                                  _tasks.insert(0, newTask);
-                                });
-                                Navigator.pop(context);
+                                final newTaskData = {
+                                  'title': titleController.text.trim(),
+                                  'dueDate': Timestamp.fromDate(selectedDate!),
+                                  'isDone': false,
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                  'assignedTo': selectedMember?.toMap(),
+                                };
+
+                                try {
+                                  await FirebaseFirestore.instance
+                                      .collection('Events')
+                                      .doc(widget.projectId)
+                                      .collection('tasks')
+                                      .add(newTaskData);
+
+                                  if (mounted) Navigator.pop(context);
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('เกิดข้อผิดพลาด: $e'),
+                                      ),
+                                    );
+                                  }
+                                }
                               }
                             },
                             style: ElevatedButton.styleFrom(
@@ -312,17 +306,42 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
         shadowColor: Colors.black12,
         automaticallyImplyLeading: false,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _tasks.length,
-        itemBuilder: (context, index) {
-          final task = _tasks[index];
-          return _TaskListItem(
-            task: task,
-            onChanged: (isDone) {
-              setState(() {
-                task.isDone = isDone ?? false;
-              });
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('Events')
+            .doc(widget.projectId)
+            .collection('tasks')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'ยังไม่มีงานในโครงงานนี้\nกดปุ่ม + เพื่อสร้างงานแรก',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            );
+          }
+
+          final tasks = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final taskDoc = tasks[index];
+              return _TaskListItem(
+                taskDoc: taskDoc,
+                onChanged: (isDone) =>
+                    taskDoc.reference.update({'isDone': isDone ?? false}),
+              );
             },
           );
         },
@@ -339,14 +358,20 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
 // --- Task List Item Widget ---
 
 class _TaskListItem extends StatelessWidget {
-  final Task task;
+  final DocumentSnapshot taskDoc;
   final ValueChanged<bool?> onChanged;
 
-  const _TaskListItem({required this.task, required this.onChanged});
+  const _TaskListItem({required this.taskDoc, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    final isOverdue = !task.isDone && task.dueDate.isBefore(DateTime.now());
+    final taskData = taskDoc.data() as Map<String, dynamic>;
+    final bool isDone = taskData['isDone'] ?? false;
+    final DateTime dueDate = (taskData['dueDate'] as Timestamp).toDate();
+    final bool isOverdue = !isDone && dueDate.isBefore(DateTime.now());
+    final Map<String, dynamic>? assignedToData =
+        taskData['assignedTo'] as Map<String, dynamic>?;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -357,7 +382,7 @@ class _TaskListItem extends StatelessWidget {
         child: Row(
           children: [
             Checkbox(
-              value: task.isDone,
+              value: isDone,
               onChanged: onChanged,
               activeColor: const Color(0xFF4F46E5),
             ),
@@ -366,14 +391,12 @@ class _TaskListItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    task.title,
+                    taskData['title'] ?? 'ไม่มีชื่องาน',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: task.isDone ? Colors.grey : Colors.black87,
-                      decoration: task.isDone
-                          ? TextDecoration.lineThrough
-                          : null,
+                      color: isDone ? Colors.grey : Colors.black87,
+                      decoration: isDone ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -386,7 +409,7 @@ class _TaskListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        "${task.dueDate.day}/${task.dueDate.month}/${task.dueDate.year}",
+                        "${dueDate.day}/${dueDate.month}/${dueDate.year}",
                         style: TextStyle(
                           fontSize: 12,
                           color: isOverdue ? Colors.red.shade700 : Colors.grey,
@@ -398,15 +421,13 @@ class _TaskListItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            if (task.assignedTo != null)
+            if (assignedToData != null)
               CircleAvatar(
                 radius: 16,
                 backgroundColor: const Color(0xFF4F46E5).withOpacity(0.2),
                 child: Text(
-                  task.assignedTo!.emoji,
-                  style: const TextStyle(
-                    fontSize: 16,
-                  ),
+                  assignedToData['emoji'] ?? '?',
+                  style: const TextStyle(fontSize: 16),
                 ),
               )
             else

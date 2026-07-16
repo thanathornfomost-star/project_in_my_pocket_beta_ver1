@@ -116,7 +116,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const LearnScreen(); // แสดงหน้าคลังความรู้
       case 2:
         return hasProject
-            ? const TaskBoardScreen()
+            ? TaskBoardScreen(projectId: activeProject!['id'])
             : const Center(
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
@@ -238,9 +238,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildActiveState(Map<String, dynamic> activeProject) {
-    // TODO: Calculate progress from real task data in Firebase
-    const progress = 0.0;
-
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -248,68 +245,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // CARD: Project Health (margin 16px, padding 16px, border-radius 16px)
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _getHealthBgColor(),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _getHealthTextColor().withAlpha(38),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      _getHealthIcon(),
-                      color: _getHealthTextColor(),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _getHealthText(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: _getHealthTextColor(),
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('Events')
+                    .doc(activeProject['id'])
+                    .collection('tasks')
+                    .snapshots(),
+                builder: (context, taskSnapshot) {
+                  final tasks = taskSnapshot.data?.docs ?? [];
+                  final totalTasks = tasks.length;
+                  final doneTasks = tasks
+                      .where((doc) =>
+                          (doc.data() as Map<String, dynamic>)['isDone'] ==
+                          true)
+                      .length;
+                  final progress = totalTasks > 0 ? doneTasks / totalTasks : 0.0;
+
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _getHealthBgColor(),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _getHealthTextColor().withAlpha(38),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: SizedBox(
-                          height: 8,
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            backgroundColor:
-                                _getHealthTextColor().withAlpha(38),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              _getHealthTextColor(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _getHealthIcon(),
+                              color: _getHealthTextColor(),
+                              size: 22,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _getHealthText(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _getHealthTextColor(),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: SizedBox(
+                                  height: 8,
+                                  child: LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor:
+                                        _getHealthTextColor().withAlpha(38),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      _getHealthTextColor(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              "${(progress * 100).toInt()}%",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: _getHealthTextColor(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      "${(progress * 100).toInt()}%",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: _getHealthTextColor(),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  );
+                }),
           ),
 
           // SECTION: งานสัปดาห์นี้
@@ -345,49 +361,175 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.post_add,
-                    size: 48, color: Colors.grey.shade400),
-                const SizedBox(height: 16),
-                const Text(
-                  "ยังไม่มีงานในโครงงานนี้",
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black54),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "เริ่มต้นจัดการงานของคุณโดยการสร้างงานแรก",
-                  style: TextStyle(color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _activeNavIndex = 2; // Go to TaskBoardScreen
-                    });
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text("สร้างงานแรกของคุณ"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('Events')
+                .doc(activeProject['id'])
+                .collection('tasks')
+                .where('isDone', isEqualTo: false)
+                .orderBy('dueDate', descending: false)
+                .limit(3)
+                .snapshots(),
+            builder: (context, taskSnapshot) {
+              if (taskSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ));
+              }
+
+              if (taskSnapshot.hasError) {
+                return Center(
+                    child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                      'เกิดข้อผิดพลาดในการโหลดงาน: ${taskSnapshot.error}'),
+                ));
+              }
+
+              if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
-                )
-              ],
-            ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.post_add,
+                          size: 48, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "ยังไม่มีงานในโครงงานนี้",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "เริ่มต้นจัดการงานของคุณโดยการสร้างงานแรก",
+                        style: TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _activeNavIndex = 2; // Go to TaskBoardScreen
+                          });
+                        },
+                        icon: const Icon(Icons.add),
+                        label: const Text("สร้างงานแรกของคุณ"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          foregroundColor: Colors.white,
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              }
+
+              final tasks = taskSnapshot.data!.docs;
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: tasks.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  itemBuilder: (context, index) {
+                    final taskDoc = tasks[index];
+                    final taskData = taskDoc.data() as Map<String, dynamic>;
+                    final DateTime dueDate =
+                        (taskData['dueDate'] as Timestamp).toDate();
+                    final bool isDone = taskData['isDone'] ?? false;
+                    final bool isOverdue = !isDone &&
+                        dueDate.isBefore(DateUtils.dateOnly(DateTime.now()));
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Checkbox(
+                              value: isDone,
+                              activeColor: const Color(0xFF4F46E5),
+                              onChanged: (val) {
+                                taskDoc.reference.update({'isDone': val});
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              taskData['title'] ?? 'ไม่มีชื่องาน',
+                              style: TextStyle(
+                                fontSize: 14,
+                                decoration: isDone
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: isDone
+                                    ? Colors.grey[400]
+                                    : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isOverdue
+                                  ? const Color(0xFFFEE2E2)
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_month,
+                                    size: 12,
+                                    color: isOverdue
+                                        ? const Color(0xFFEF4444)
+                                        : const Color(0xFF64748B)),
+                                const SizedBox(width: 4),
+                                Text("${dueDate.day}/${dueDate.month}",
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: isOverdue
+                                            ? const Color(0xFFEF4444)
+                                            : const Color(0xFF64748B),
+                                        fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
 
           const Padding(
@@ -1108,6 +1250,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // --- TEMPORARY FUNCTION TO DELETE ALL TASKS ---
+  // !! REMOVE THIS AFTER USE !!
+  Future<void> _deleteAllTasksFromAllProjects() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('กำลังลบงานทั้งหมด...')),
+    );
+
+    final firestore = FirebaseFirestore.instance;
+    try {
+      final projectsSnapshot = await firestore.collection('Events').get();
+      int totalDeleted = 0;
+
+      for (final projectDoc in projectsSnapshot.docs) {
+        final tasksSnapshot =
+            await projectDoc.reference.collection('tasks').get();
+
+        if (tasksSnapshot.docs.isNotEmpty) {
+          final batch = firestore.batch();
+          for (final taskDoc in tasksSnapshot.docs) {
+            batch.delete(taskDoc.reference);
+          }
+          await batch.commit();
+          totalDeleted += tasksSnapshot.size;
+          debugPrint(
+              'Deleted ${tasksSnapshot.size} tasks from project ${projectDoc.id}');
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('ลบงานทั้งหมด $totalDeleted รายการสำเร็จ!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการลบ: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  // --- END OF TEMPORARY FUNCTION ---
+
   Widget _buildQuickActionCard(
     String icon,
     String title, {
@@ -1199,6 +1390,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             Row(
               children: [
+                // --- TEMPORARY BUTTON TO DELETE ALL TASKS ---
+                // !! REMOVE THIS AFTER USE !!
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                  tooltip: 'ลบงานทั้งหมดในทุกโครงงาน',
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('ยืนยันการลบ'),
+                        content: const Text(
+                            'คุณต้องการลบ "งานทั้งหมด" ออกจาก "ทุกโครงงาน" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('ยกเลิก')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('ยืนยัน',
+                                  style: TextStyle(color: Colors.red))),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) _deleteAllTasksFromAllProjects();
+                  },
+                ),
                 IconButton(
                   icon: const Icon(
                     Icons.notifications_outlined,
