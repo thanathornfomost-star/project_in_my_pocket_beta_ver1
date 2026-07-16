@@ -167,7 +167,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
                             ),
                             const Icon(
                               Icons.calendar_today,
-                              color: Color(0xFF4F46E5),
+                              color: Color(0xFF007AFF),
                             ),
                           ],
                         ),
@@ -266,7 +266,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4F46E5),
+                              backgroundColor: const Color(0xFF007AFF),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -348,7 +348,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddTaskDialog,
-        backgroundColor: const Color(0xFF4F46E5),
+        backgroundColor: const Color(0xFF007AFF),
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -384,7 +384,7 @@ class _TaskListItem extends StatelessWidget {
             Checkbox(
               value: isDone,
               onChanged: onChanged,
-              activeColor: const Color(0xFF4F46E5),
+              activeColor: const Color(0xFF007AFF),
             ),
             Expanded(
               child: Column(
@@ -424,7 +424,7 @@ class _TaskListItem extends StatelessWidget {
             if (assignedToData != null)
               CircleAvatar(
                 radius: 16,
-                backgroundColor: const Color(0xFF4F46E5).withOpacity(0.2),
+                backgroundColor: const Color(0xFF007AFF).withOpacity(0.2),
                 child: Text(
                   assignedToData['emoji'] ?? '?',
                   style: const TextStyle(fontSize: 16),

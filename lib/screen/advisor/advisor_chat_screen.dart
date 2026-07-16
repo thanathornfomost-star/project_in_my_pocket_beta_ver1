@@ -58,7 +58,7 @@ class AdvisorChatScreen extends StatelessWidget {
                 child: ListTile(
                   leading: const Icon(
                     Icons.chat_bubble_outline_rounded,
-                    color: Color(0xFF4F46E5),
+                    color: Color(0xFF007AFF),
                   ),
                   title: Text(
                     group.name,

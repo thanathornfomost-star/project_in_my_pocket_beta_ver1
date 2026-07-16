@@ -227,9 +227,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                       height: 8,
                       child: LinearProgressIndicator(
                         value: progress,
-                        backgroundColor: Colors.blue.shade100,
+                        backgroundColor: const Color(0xFFE6F2FF),
                         valueColor: const AlwaysStoppedAnimation<Color>(
-                          Colors.blue,
+                          Color(0xFF007AFF),
                         ),
                       ),
                     ),
@@ -241,7 +241,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Color(0xFF007AFF),
                   ),
                 ),
               ],

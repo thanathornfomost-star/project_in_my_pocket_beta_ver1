@@ -221,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   IconButton(
                     icon: const Icon(
                       Icons.edit_outlined,
-                      color: Color(0xFF4F46E5),
+                      color: Color(0xFF007AFF),
                     ),
                     tooltip: 'แก้ไขข้อมูล',
                     onPressed: () => setState(() => _isEditing = true),
@@ -351,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : const Icon(Icons.save_outlined, size: 20),
               label: const Text('บันทึก'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4F46E5),
+                backgroundColor: const Color(0xFF007AFF),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -421,11 +421,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF4F46E5).withValues(alpha: 0.2)
+                        ? const Color(0xFF007AFF).withOpacity(0.2)
                         : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(25),
                     border: isSelected
-                        ? Border.all(color: const Color(0xFF4F46E5), width: 2)
+                        ? Border.all(color: const Color(0xFF007AFF), width: 2)
                         : Border.all(color: Colors.transparent),
                   ),
                   child: Center(

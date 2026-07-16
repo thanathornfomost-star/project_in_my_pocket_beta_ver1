@@ -67,7 +67,7 @@ class _AdvisorProjectChatScreenState extends State<AdvisorProjectChatScreen> {
       return const Text(
         ' (นักเรียน)',
         style: TextStyle(
-          color: Colors.blue,
+          color: Color(0xFF007AFF),
           fontSize: 12,
           fontWeight: FontWeight.normal,
         ),
@@ -123,7 +123,7 @@ class _AdvisorProjectChatScreenState extends State<AdvisorProjectChatScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: isMe
-                            ? const Color(0xFF4F46E5)
+                            ? const Color(0xFF007AFF)
                             : Colors.grey[200],
                         borderRadius: BorderRadius.only(
                           topLeft: const Radius.circular(12),
@@ -243,7 +243,7 @@ class _AdvisorProjectChatScreenState extends State<AdvisorProjectChatScreen> {
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.send),
-            color: const Color(0xFF4F46E5),
+            color: const Color(0xFF007AFF),
             onPressed: _sendMessage,
           ),
         ],

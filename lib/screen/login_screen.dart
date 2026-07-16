@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen>
       child: Container(
         width: double.infinity,
         height: 280,
-        color: Theme.of(context).primaryColor,
+        color: const Color(0xFF007AFF),
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: const Column(
@@ -183,7 +183,10 @@ class _LoginScreenState extends State<LoginScreen>
                   onPressed: () {
                     // TODO: Implement forgot password functionality
                   },
-                  child: const Text('ลืมรหัสผ่าน?'),
+                  child: const Text(
+                    'ลืมรหัสผ่าน?',
+                    style: TextStyle(color: Color(0xFF007AFF)),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -193,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen>
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
+                    backgroundColor: const Color(0xFF007AFF),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -224,7 +227,10 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       );
                     },
-                    child: const Text('สมัครสมาชิก'),
+                    child: const Text(
+                      'สมัครสมาชิก',
+                      style: TextStyle(color: Color(0xFF007AFF)),
+                    ),
                   ),
                 ],
               ),

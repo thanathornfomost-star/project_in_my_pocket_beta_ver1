@@ -238,10 +238,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 height: 8,
                                 child: LinearProgressIndicator(
                                   value: progress,
-                                  backgroundColor: const Color(0xFFE0E7FF),
+                                  backgroundColor: const Color(0xFFE6F2FF),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF4F46E5),
+                                        Color(0xFF007AFF),
                                       ),
                                 ),
                               ),
@@ -253,7 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF4F46E5),
+                              color: Color(0xFF007AFF),
                             ),
                           ),
                         ],
@@ -289,7 +289,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     "ดูทั้งหมด >",
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF4F46E5),
+                      color: Color(0xFF007AFF),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -366,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.add),
                         label: const Text("สร้างงานแรกของคุณ"),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F46E5),
+                          backgroundColor: const Color(0xFF007AFF),
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -435,7 +435,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             height: 20,
                             child: Checkbox(
                               value: isDone,
-                              activeColor: const Color(0xFF4F46E5),
+                              activeColor: const Color(0xFF007AFF),
                               onChanged: (val) {
                                 taskDoc.reference.update({'isDone': val});
                               },
@@ -573,7 +573,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Icon(
                       Icons.folder_open_rounded,
                       size: 90,
-                      color: const Color(0xFF4F46E5).withValues(alpha: 0.5),
+                      color: const Color(0xFF007AFF).withOpacity(0.5),
                     ),
                     const SizedBox(height: 4),
                     const Text(
@@ -629,7 +629,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F46E5),
+                  backgroundColor: const Color(0xFF007AFF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -649,8 +649,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF4F46E5),
-                  side: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                  foregroundColor: const Color(0xFF007AFF),
+                  side: const BorderSide(color: Color(0xFF007AFF), width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -847,7 +847,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const Icon(
                               Icons.date_range,
-                              color: Color(0xFF4F46E5),
+                              color: Color(0xFF007AFF),
                             ),
                           ],
                         ),
@@ -999,7 +999,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4F46E5),
+                              backgroundColor: const Color(0xFF007AFF),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -1058,11 +1058,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return ListTile(
                     leading: const Icon(
                       Icons.add_circle_outline,
-                      color: Color(0xFF4F46E5),
+                      color: Color(0xFF007AFF),
                     ),
                     title: const Text(
                       "สร้างโครงงานใหม่",
-                      style: TextStyle(fontSize: 14, color: Color(0xFF4F46E5)),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF007AFF)),
                     ),
                     onTap: () {
                       Navigator.pop(context); // Close the selection dialog
@@ -1734,7 +1734,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 36,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4F46E5),
+                      color: Color(0xFF007AFF),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
@@ -1797,7 +1797,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Icon(
               icon,
               color: isActive
-                  ? const Color(0xFF4F46E5)
+                  ? const Color(0xFF007AFF)
                   : const Color(0xFF94A3B8),
               size: 24,
             ),
@@ -1807,7 +1807,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 4,
                 height: 4,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF4F46E5),
+                  color: Color(0xFF007AFF),
                   shape: BoxShape.circle,
                 ),
               )

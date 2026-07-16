@@ -219,7 +219,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
                   width: 36,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4F46E5),
+                    color: const Color(0xFF007AFF),
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 1.5),
                   ),
@@ -327,15 +327,15 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF2FF), // Indigo light
+        color: const Color(0xFFE6F2FF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFC7D2FE)),
+        border: Border.all(color: const Color(0xFFB3D7FF)),
       ),
       child: Row(
         children: [
           const Icon(
             Icons.supervisor_account_rounded,
-            color: Color(0xFF4338CA),
+            color: Color(0xFF007AFF),
             size: 28,
           ),
           const SizedBox(width: 12),
@@ -344,7 +344,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF4338CA),
+              color: Color(0xFF007AFF),
             ),
           ),
         ],
@@ -387,7 +387,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
                 children: [
                   const Icon(
                     Icons.folder_shared_outlined,
-                    color: Colors.indigo,
+                    color: Color(0xFF007AFF),
                     size: 32,
                   ),
                   const SizedBox(width: 16),
@@ -491,7 +491,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
             Icon(
               icon,
               color: isActive
-                  ? const Color(0xFF4F46E5)
+                  ? const Color(0xFF007AFF)
                   : const Color(0xFF94A3B8),
               size: 24,
             ),
@@ -501,7 +501,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
                 width: 4,
                 height: 4,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF4F46E5),
+                  color: Color(0xFF007AFF),
                   shape: BoxShape.circle,
                 ),
               )
