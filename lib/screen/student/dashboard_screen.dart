@@ -367,8 +367,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 .doc(activeProject['id'])
                 .collection('tasks')
                 .where('isDone', isEqualTo: false)
-                .orderBy('dueDate', descending: false)
-                .limit(3)
                 .snapshots(),
             builder: (context, taskSnapshot) {
               if (taskSnapshot.connectionState == ConnectionState.waiting) {
@@ -433,7 +431,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               }
 
-              final tasks = taskSnapshot.data!.docs;
+              // Sort tasks by due date (ascending) and take the first 3
+              final tasks = taskSnapshot.data!.docs.toList();
+              tasks.sort((a, b) {
+                final aData = a.data() as Map<String, dynamic>;
+                final bData = b.data() as Map<String, dynamic>;
+                final aDate = aData['dueDate'] as Timestamp?;
+                final bDate = bData['dueDate'] as Timestamp?;
+                if (aDate == null) return 1; // Put tasks without due date at the end
+                if (bDate == null) return -1;
+                return aDate.compareTo(bDate);
+              });
+
+              final displayTasks = tasks.take(3).toList();
 
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -451,16 +461,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: tasks.length,
+                  itemCount: displayTasks.length,
                   separatorBuilder: (context, index) =>
                       const Divider(height: 1, color: Color(0xFFF1F5F9)),
                   itemBuilder: (context, index) {
-                    final taskDoc = tasks[index];
+                    final taskDoc = displayTasks[index];
                     final taskData = taskDoc.data() as Map<String, dynamic>;
-                    final DateTime dueDate =
-                        (taskData['dueDate'] as Timestamp).toDate();
+                    final dueDateTimestamp = taskData['dueDate'] as Timestamp?;
+                    final DateTime? dueDate = dueDateTimestamp?.toDate();
                     final bool isDone = taskData['isDone'] ?? false;
-                    final bool isOverdue = !isDone &&
+                    final bool isOverdue = dueDate != null &&
+                        !isDone &&
                         dueDate.isBefore(DateUtils.dateOnly(DateTime.now()));
 
                     return Padding(
@@ -494,33 +505,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isOverdue
-                                  ? const Color(0xFFFEE2E2)
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(6),
+                          if (dueDate != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isOverdue
+                                    ? const Color(0xFFFEE2E2)
+                                    : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_month,
+                                      size: 12,
+                                      color: isOverdue
+                                          ? const Color(0xFFEF4444)
+                                          : const Color(0xFF64748B)),
+                                  const SizedBox(width: 4),
+                                  Text("${dueDate.day}/${dueDate.month}",
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: isOverdue
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF64748B),
+                                          fontWeight: FontWeight.bold)),
+                                ],
+                              ),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_month,
-                                    size: 12,
-                                    color: isOverdue
-                                        ? const Color(0xFFEF4444)
-                                        : const Color(0xFF64748B)),
-                                const SizedBox(width: 4),
-                                Text("${dueDate.day}/${dueDate.month}",
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: isOverdue
-                                            ? const Color(0xFFEF4444)
-                                            : const Color(0xFF64748B),
-                                        fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
                     );
