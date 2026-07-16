@@ -1547,7 +1547,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // --- TEMPORARY FUNCTION TO DELETE ALL TASKS ---
   // !! REMOVE THIS AFTER USE !!
-  Future<void> _deleteAllTasksFromAllProjects() async {
   Future<void> _deleteProject(String projectId, String projectName) async {
     final confirm = await showDialog<bool>(
       context: context,
