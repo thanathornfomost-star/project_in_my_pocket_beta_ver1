@@ -565,8 +565,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary, width: 1.5),
+                  foregroundColor: const Color(0xFF4F46E5),
+                  side: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -966,7 +966,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           title: const Row(
             children: [
-              Icon(Icons.group_add_outlined, color: AppColors.primary),
+              Icon(Icons.group_add_outlined, color: Colors.blue),
               SizedBox(width: 8),
               Text(
                 'เชิญเพื่อนเข้าร่วม',

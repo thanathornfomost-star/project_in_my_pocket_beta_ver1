@@ -1,6 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/register_screen.dart';
-import 'package:project_in_my_pocket_beta_ver1/screen/student/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,7 +15,6 @@ class _LoginScreenState extends State<LoginScreen>
   final _passwordController = TextEditingController();
   bool _showPassword = false;
   bool _isLoading = false;
-  String _role = 'student';
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -53,19 +52,36 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _handleLogin() async {
+    // Validate input fields (optional but good practice)
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณากรอกอีเมลและรหัสผ่าน')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
-    // Mock API call
-    await Future.delayed(const Duration(seconds: 2));
 
-    // TODO: เชื่อม AuthService.login() ทีหลังนะจะไข่ตุ๋น
-    // เมื่อ Login สำเร็จ ให้ไปยังหน้า Dashboard
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const DashboardScreen()),
-    );
+    try {
+      // Use Firebase Auth to sign in
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _usernameController.text.trim(), // Assuming username is email
+        password: _passwordController.text.trim(),
+      );
+      // Navigation will be handled by AuthGate, so no need for Navigator.pushReplacement here.
+    } on FirebaseAuthException catch (e) {
+      // Handle specific Firebase errors
+      String message = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
+        message = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
 
-    // ตรวจสอบว่า Widget ยังอยู่ใน Tree หรือไม่ก่อนเรียก setState
-    // เพื่อป้องกัน Error: setState() called after dispose()
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -132,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen>
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
-                  labelText: 'ชื่อผู้ใช้',
+                  labelText: 'อีเมล',
                   prefixIcon: const Icon(Icons.person_outline),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -164,18 +180,13 @@ class _LoginScreenState extends State<LoginScreen>
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: Implement forgot password functionality
+                  },
                   child: const Text('ลืมรหัสผ่าน?'),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'ฉันคือ...',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              _buildRoleSelector(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -220,41 +231,6 @@ class _LoginScreenState extends State<LoginScreen>
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildRoleSelector() {
-    return SizedBox(
-      width: double.infinity,
-      child: ToggleButtons(
-        isSelected: [_role == 'student', _role == 'advisor'],
-        onPressed: (index) {
-          setState(() {
-            _role = index == 0 ? 'student' : 'advisor';
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        selectedColor: Colors.white,
-        fillColor: Theme.of(context).primaryColor,
-        color: Theme.of(context).primaryColor,
-        constraints: const BoxConstraints(minHeight: 44.0),
-        children: const [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'นักเรียน',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'อาจารย์',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
       ),
     );
   }

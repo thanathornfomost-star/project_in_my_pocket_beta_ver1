@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:project_in_my_pocket_beta_ver1/main.dart'; // Import เพื่อใช้สีจาก AppColors
+
+/// Color constants
+class AppColors {
+  static const Color surface = Color(0xFFFAFAFA);
+  static const Color border = Color(0xFFE0E0E0);
+  static const Color textPrimary = Color(0xFF1F1F1F);
+  static const Color textSecondary = Color(0xFF757575);
+}
 
 /// หน้าจอหลักสำหรับแสดงรายการหัวข้อการเรียนรู้
 class LearnScreen extends StatelessWidget {

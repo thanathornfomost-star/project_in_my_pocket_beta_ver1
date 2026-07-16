@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -23,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isObscurePassword = true;
   bool _isObscureConfirmPassword = true;
   int _selectedRoleIndex = 0; // 0 = นักเรียน, 1 = อาจารย์
+  bool _isLoading = false;
   bool _isAcceptedTerms = false;
 
   // Dropdown Values (สำหรับนักเรียน)
@@ -30,8 +33,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedLevel;
 
   // ข้อมูลจำลองสำหรับ Dropdown
-  final List<String> _schools = ['โรงเรียนขุขันธ์', 'โรงเรียนมัธยมสาธิต', 'โรงเรียนนานาชาติรวมมิตร'];
-  final List<String> _levels = ['มัธยมศึกษาปีที่ 1', 'มัธยมศึกษาปีที่ 2', 'มัธยมศึกษาปีที่ 3', 'มัธยมศึกษาปีที่ 4', 'มัธยมศึกษาปีที่ 5', 'มัธยมศึกษาปีที่ 6'];
+  final List<String> _schools = [
+    'โรงเรียนขุขันธ์',
+    'โรงเรียนมัธยมสาธิต',
+    'โรงเรียนนานาชาติรวมมิตร',
+  ];
+  final List<String> _levels = [
+    'มัธยมศึกษาปีที่ 1',
+    'มัธยมศึกษาปีที่ 2',
+    'มัธยมศึกษาปีที่ 3',
+    'มัธยมศึกษาปีที่ 4',
+    'มัธยมศึกษาปีที่ 5',
+    'มัธยมศึกษาปีที่ 6',
+  ];
 
   @override
   void dispose() {
@@ -45,13 +59,73 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _handleRegister() async {
+    if (!_isAcceptedTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณายอมรับเงื่อนไขการใช้งาน')),
+      );
+      return;
+    }
+
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+
+      try {
+        // 1. Create user with email and password
+        final userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim(),
+            );
+
+        // 2. Save additional user data to Firestore
+        if (userCredential.user != null) {
+          final userDoc = FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid);
+
+          final userData = {
+            'uid': userCredential.user!.uid,
+            'name': _nameController.text.trim(),
+            'username': _usernameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'role': _selectedRoleIndex == 0 ? 'student' : 'teacher',
+            'createdAt': FieldValue.serverTimestamp(),
+            'avatarEmoji': _selectedRoleIndex == 0
+                ? '🧑‍🎓'
+                : '🧑‍🏫', // Default emoji
+            // Add role-specific data
+            if (_selectedRoleIndex == 0) ...{
+              'school': _selectedSchool,
+              'level': _selectedLevel,
+            } else ...{
+              'subject': _subjectController.text.trim(),
+              'school': _teacherSchoolController.text.trim(),
+            },
+          };
+
+          await userDoc.set(userData);
+        }
+        // Navigation is handled by AuthGate
+      } on FirebaseAuthException catch (e) {
+        String message = 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+        if (e.code == 'weak-password') {
+          message = 'รหัสผ่านไม่ปลอดภัย';
+        } else if (e.code == 'email-already-in-use') {
+          message = 'อีเมลนี้ถูกใช้งานแล้ว';
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('สมัครสมาชิก'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('สมัครสมาชิก'), centerTitle: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -73,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return "โปรดกรอกข้อมูลให้ครบ";
                     }
                     return null;
-                  }
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -91,11 +165,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return "โปรดกรอกข้อมูลให้ครบ";
                     }
                     // แถม: เช็กรูปแบบอีเมลเบื้องต้นให้ด้วยครับ
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return "รูปแบบอีเมลไม่ถูกต้อง";
                     }
                     return null;
-                  }
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -112,7 +188,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return "โปรดกรอกข้อมูลให้ครบ";
                     }
                     return null;
-                  }
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -125,7 +201,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_isObscurePassword ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                        _isObscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
                       onPressed: () {
                         setState(() {
                           _isObscurePassword = !_isObscurePassword;
@@ -141,7 +221,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return "รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร";
                     }
                     return null;
-                  }
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -154,10 +234,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.lock_clock),
                     suffixIcon: IconButton(
-                      icon: Icon(_isObscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                        _isObscureConfirmPassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
                       onPressed: () {
                         setState(() {
-                          _isObscureConfirmPassword = !_isObscureConfirmPassword;
+                          _isObscureConfirmPassword =
+                              !_isObscureConfirmPassword;
                         });
                       },
                     ),
@@ -176,12 +261,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 24),
 
                 // 6. เลือกบทบาท (Segmented Control)
-                const Text('เลือกบทบาท', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'เลือกบทบาท',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
                   child: ToggleButtons(
-                    isSelected: [_selectedRoleIndex == 0, _selectedRoleIndex == 1],
+                    isSelected: [
+                      _selectedRoleIndex == 0,
+                      _selectedRoleIndex == 1,
+                    ],
                     onPressed: (int index) {
                       setState(() {
                         _selectedRoleIndex = index;
@@ -192,10 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       minWidth: (MediaQuery.of(context).size.width - 60) / 2,
                       minHeight: 45,
                     ),
-                    children: const [
-                      Text('นักเรียน'),
-                      Text('อาจารย์'),
-                    ],
+                    children: const [Text('นักเรียน'), Text('อาจารย์')],
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -203,9 +291,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // 7. Dynamic Fields ตามบทบาท
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
-                  child: _selectedRoleIndex == 0 
-                      ? _buildStudentFields() 
-                      : _buildTeacherFields(), 
+                  child: _selectedRoleIndex == 0
+                      ? _buildStudentFields()
+                      : _buildTeacherFields(),
                 ),
                 const SizedBox(height: 16),
 
@@ -246,18 +334,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // 9. ปุ่มสมัครสมาชิก
                 ElevatedButton(
-                  onPressed: _isAcceptedTerms 
-                      ? () {
-                          if (_formKey.currentState!.validate()) {
-                            // ถ้าผ่าน Validator ทุกช่องแล้วจะมาทำตรงนี้
-                            debugPrint('สมัครสมาชิกสำเร็จ');
-                          }
-                        }
-                      : null, 
+                  onPressed: _isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
                   ),
-                  child: const Text('สมัครสมาชิก', style: TextStyle(fontSize: 16)),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'สมัครสมาชิก',
+                          style: TextStyle(fontSize: 16),
+                        ),
                 ),
                 const SizedBox(height: 24),
 
@@ -300,10 +386,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             border: OutlineInputBorder(),
           ),
           items: _schools.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
+            return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
           onChanged: (newValue) {
             setState(() {
@@ -320,10 +403,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             border: OutlineInputBorder(),
           ),
           items: _levels.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
+            return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
           onChanged: (newValue) {
             setState(() {
