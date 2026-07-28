@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="project_in_my_pocket_beta_ver1"
+        android:label="PIMP"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

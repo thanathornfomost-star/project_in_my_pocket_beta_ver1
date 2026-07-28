@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "408408873014",
-    "project_id": "project-in-my-pocket-beta",
-    "storage_bucket": "project-in-my-pocket-beta.firebasestorage.app"
+    "project_number": "1088859395818",
+    "project_id": "pimp-b7075",
+    "storage_bucket": "pimp-b7075.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:408408873014:android:8ee8cde9cbd1a3e4dd6097",
+        "mobilesdk_app_id": "1:1088859395818:android:d359b5c0be653e0705a993",
         "android_client_info": {
           "package_name": "com.example.project_in_my_pocket_beta_ver1"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAnpLZmz72FEYSntW3KXYprEx1GG6-xTM0"
+          "current_key": "AIzaSyDmOnEnA5Aqtuuk_jlt-Z8MBM5dEVW2GVI"
         }
       ],
       "services": {

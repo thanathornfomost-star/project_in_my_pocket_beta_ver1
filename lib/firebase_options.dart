@@ -47,29 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCGzXMf9d0jwmbum3SoiTJuvpOHBK74Zp0',
-    appId: '1:408408873014:web:b2e90eed2e7da289dd6097',
-    messagingSenderId: '408408873014',
-    projectId: 'project-in-my-pocket-beta',
-    authDomain: 'project-in-my-pocket-beta.firebaseapp.com',
-    storageBucket: 'project-in-my-pocket-beta.firebasestorage.app',
-    measurementId: 'G-97PJG1RKGD',
+    apiKey: 'AIzaSyAckzj_7DMNgmj-ZgBKBqWUoC7s_ZMmDDw',
+    appId: '1:1088859395818:web:de22fd3c5b59dd9c05a993',
+    messagingSenderId: '1088859395818',
+    projectId: 'pimp-b7075',
+    authDomain: 'pimp-b7075.firebaseapp.com',
+    storageBucket: 'pimp-b7075.firebasestorage.app',
+    measurementId: 'G-FWV7YQ3D23',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAnpLZmz72FEYSntW3KXYprEx1GG6-xTM0',
-    appId: '1:408408873014:android:8ee8cde9cbd1a3e4dd6097',
-    messagingSenderId: '408408873014',
-    projectId: 'project-in-my-pocket-beta',
-    storageBucket: 'project-in-my-pocket-beta.firebasestorage.app',
+    apiKey: 'AIzaSyDmOnEnA5Aqtuuk_jlt-Z8MBM5dEVW2GVI',
+    appId: '1:1088859395818:android:d359b5c0be653e0705a993',
+    messagingSenderId: '1088859395818',
+    projectId: 'pimp-b7075',
+    storageBucket: 'pimp-b7075.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBVgZAq2SS9_7wNo5ECHuDZkqQKR1eHcRo',
-    appId: '1:408408873014:ios:5fe5682bd6acbc32dd6097',
-    messagingSenderId: '408408873014',
-    projectId: 'project-in-my-pocket-beta',
-    storageBucket: 'project-in-my-pocket-beta.firebasestorage.app',
+    apiKey: 'AIzaSyC6xYWtjDJROXSl2BuOOLcqJOK9hyBs0_E',
+    appId: '1:1088859395818:ios:9dd717026ee0922705a993',
+    messagingSenderId: '1088859395818',
+    projectId: 'pimp-b7075',
+    storageBucket: 'pimp-b7075.firebasestorage.app',
     iosBundleId: 'com.example.projectInMyPocketBetaVer1',
   );
 }
