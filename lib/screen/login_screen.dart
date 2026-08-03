@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen>
       child: Container(
         width: double.infinity,
         height: 280,
-        color: Theme.of(context).primaryColor,
+        color: Colors.blue,
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: const Column(
@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen>
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
