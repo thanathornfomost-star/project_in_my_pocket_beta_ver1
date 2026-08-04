@@ -39,7 +39,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // การทำเช่นนี้จะล้างหน้าจอเก่าทั้งหมดออก
       _navigatorKey.currentState?.pushAndRemoveUntil(
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const SplashScreen(),
+          pageBuilder: (_, _, _) => const SplashScreen(),
           transitionDuration: const Duration(seconds: 0),
         ),
         (route) => false,
