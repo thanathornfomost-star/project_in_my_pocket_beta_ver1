@@ -34,7 +34,7 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
 
     final userDoc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(_currentUser!.uid)
+        .doc(_currentUser.uid)
         .get();
     final userData = userDoc.data();
 
@@ -50,7 +50,7 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
         .add({
           'text': messageText,
           'createdAt': Timestamp.now(),
-          'senderId': _currentUser!.uid,
+          'senderId': _currentUser.uid,
           'senderName': userData['name'] ?? 'ผู้ใช้ไม่มีชื่อ',
           'senderRole': userData['role'] ?? 'student',
           'senderEmoji': userData['avatarEmoji'] ?? '🧑‍💻',
@@ -216,7 +216,7 @@ class _StudentProjectChatScreenState extends State<StudentProjectChatScreen> {
         color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, -3),

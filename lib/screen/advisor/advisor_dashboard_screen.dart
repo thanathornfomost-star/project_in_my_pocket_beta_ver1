@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_chat_screen.dart';
-import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_project_chat_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_profile_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/group_detail_screen.dart';
 
@@ -534,7 +533,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
         .get();
     final userData = userDoc.data();
 
-    if (user == null || userData == null) {
+    if (userData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('ไม่พบข้อมูลผู้ใช้'),

@@ -7,6 +7,7 @@ import 'package:project_in_my_pocket_beta_ver1/screen/student/learn_screen.dart'
 import 'package:project_in_my_pocket_beta_ver1/screen/student/profile_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/chat_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/task_board_screen.dart';
+import 'package:project_in_my_pocket_beta_ver1/util/project_templates.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -957,12 +958,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     );
 
                                     try {
-                                      await FirebaseFirestore.instance
+                                      final newProjectRef = await FirebaseFirestore.instance
                                           .collection('Events')
                                           .add(newProjectData);
                                       debugPrint(
-                                        "--- [4] SUCCESS: Data uploaded to Firestore! ---",
+                                        "--- [4] SUCCESS: Data uploaded to Firestore! ID: ${newProjectRef.id} ---",
                                       );
+
+                                      // Create tasks from the template
+                                      debugPrint(
+                                        "--- [5] PREPARE: Calling createTasksFromTemplate for type: '$localType' ---",
+                                      );
+                                      await ProjectTemplates.createTasksFromTemplate(
+                                        newProjectRef.id,
+                                        localType,
+                                      );
+                                      debugPrint(
+                                        "--- [6] SUCCESS: Finished createTasksFromTemplate call. ---",
+                                      );
+
                                       if (mounted) {
                                         Navigator.pop(context);
                                         ScaffoldMessenger.of(
