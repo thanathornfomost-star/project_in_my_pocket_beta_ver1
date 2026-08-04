@@ -2,6 +2,82 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_dashboard_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// Helper Function สำหรับเปิดไฟล์แนบ
+Future<void> _openAttachmentUrl(String url) async {
+  final uri = Uri.parse(url);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else {
+    debugPrint("Could not launch $url");
+  }
+}
+
+// Widget แสดงรายการไฟล์แนบสำหรับหน้า Advisor
+Widget _buildAdvisorAttachmentsList(List<dynamic> attachments) {
+  if (attachments.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 6),
+      const Row(
+        children: [
+          Icon(Icons.attach_file, size: 14, color: Colors.grey),
+          SizedBox(width: 4),
+          Text(
+            'ไฟล์แนบจากนักเรียน:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 4),
+      ...attachments.map((attachment) {
+        final Map<String, dynamic> item = Map<String, dynamic>.from(
+          attachment as Map,
+        );
+        final String name = item['name'] ?? 'ไฟล์แนบ';
+        final String url = item['url'] ?? '';
+
+        return InkWell(
+          onTap: () => _openAttachmentUrl(url),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3.0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.insert_drive_file,
+                  size: 14,
+                  color: Color(0xFF4F46E5),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4F46E5),
+                      decoration: TextDecoration.underline,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(Icons.download, size: 14, color: Colors.grey),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    ],
+  );
+}
 
 // Mockup data for members
 class ProjectMember {
@@ -20,7 +96,6 @@ class GroupDetailScreen extends StatefulWidget {
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
-  // Re-using the status color logic. It might be better to move this to a utility file later.
   Color _getStatusColor(String status) {
     switch (status) {
       case 'เสนอหัวข้อ':
@@ -74,6 +149,15 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
             const SizedBox(height: 12),
             _buildMembersList(),
             const SizedBox(height: 24),
+            const Text(
+              'ติดตามงานของนักเรียน',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 12),
             _buildTaskList(widget.projectGroup.id),
           ],
         ),
@@ -134,18 +218,17 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           return const Text("ไม่พบข้อมูลสมาชิก");
         }
 
-        // Sort the list to put the advisor (current user) at the top
         final currentUserUid = FirebaseAuth.instance.currentUser?.uid;
         membersData.sort((a, b) {
           final aMap = a as Map<String, dynamic>;
           final bMap = b as Map<String, dynamic>;
           if (aMap['uid'] == currentUserUid) {
-            return -1; // a (advisor) comes first
+            return -1;
           }
           if (bMap['uid'] == currentUserUid) {
-            return 1; // b (advisor) comes first
+            return 1;
           }
-          return 0; // Keep original order for others
+          return 0;
         });
 
         return Card(
@@ -180,10 +263,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                     : null,
               );
             },
-          ), // 🟢 เปลี่ยนจาก ); เป็น ), เพื่อให้ ListView อยู่ใน Card
-        ); // 🟢 ปิด Card ด้วย );
-      }, // 🟢 ปิด builder ของ StreamBuilder
-    ); // 🟢 ปิด return StreamBuilder
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildTaskProgress(String projectId) {
@@ -195,15 +278,19 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const SizedBox(height: 8); // Return empty space while loading
+          return const SizedBox(height: 8);
         }
         final tasks = snapshot.data?.docs ?? [];
-        final totalTasks = tasks.length;
-        final doneTasks = tasks
-            .where(
-              (doc) => (doc.data() as Map<String, dynamic>)['isDone'] == true,
-            )
-            .length;
+        final totalTasks = tasks.where((doc) {
+          final d = doc.data() as Map<String, dynamic>;
+          return d['isChapter'] != true; // คำนวณความคืบหน้าเฉพาะงานย่อย
+        }).length;
+
+        final doneTasks = tasks.where((doc) {
+          final d = doc.data() as Map<String, dynamic>;
+          return d['isChapter'] != true && d['isDone'] == true;
+        }).length;
+
         final progress = totalTasks > 0 ? doneTasks / totalTasks : 0.0;
 
         return Column(
@@ -258,60 +345,193 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
           .collection('Events')
           .doc(projectId)
           .collection('tasks')
-          .where('isDone', isEqualTo: false)
+          .orderBy('createdAt')
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('ไม่มีงานที่ต้องทำ'));
+          return const Center(child: Text('ไม่มีรายการงาน'));
         }
 
-        final tasks = snapshot.data!.docs;
+        final allTasks = snapshot.data!.docs;
 
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        // จัดเรียงตามลำดับ order
+        allTasks.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aOrder = aData['order'] as int?;
+          final bOrder = bData['order'] as int?;
+
+          if (aOrder != null && bOrder != null) return aOrder.compareTo(bOrder);
+          if (aOrder != null) return -1;
+          if (bOrder != null) return 1;
+          return 0;
+        });
+
+        // แยก Chapter และ Sub-tasks
+        final Map<DocumentSnapshot, List<DocumentSnapshot>> groupedTasks = {};
+        DocumentSnapshot? currentChapter;
+        final List<DocumentSnapshot> standaloneTasks = [];
+
+        for (final task in allTasks) {
+          final taskData = task.data() as Map<String, dynamic>;
+          if (taskData['isChapter'] == true) {
+            currentChapter = task;
+            groupedTasks[currentChapter] = [];
+          } else if (currentChapter != null &&
+              (taskData['isTemplate'] == true ||
+                  taskData['parentChapterId'] == currentChapter.id)) {
+            groupedTasks[currentChapter]?.add(task);
+          } else {
+            standaloneTasks.add(task);
+          }
+        }
+
+        return Column(
+          children: [
+            // แสดง Dropdown แบบ ExpansionTile สำหรับแต่ละบท
+            ...groupedTasks.entries.map((entry) {
+              final chapterDoc = entry.key;
+              final chapterData = chapterDoc.data() as Map<String, dynamic>;
+              final subTasks = entry.value;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: ExpansionTile(
+                  title: Text(
+                    chapterData['title'] ?? 'หมวดหมู่/บท',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  children: subTasks.isEmpty
+                      ? [
+                          const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: Text(
+                              'ไม่มีงานย่อยในหัวข้อนี้',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 13,
+                              ), // <-- ย้ายมาไว้ตรงนี้
+                            ),
+                          ),
+                        ]
+                      : subTasks.map((subTaskDoc) {
+                          final taskData =
+                              subTaskDoc.data() as Map<String, dynamic>;
+                          final bool isDone = taskData['isDone'] ?? false;
+                          final dueDate = (taskData['dueDate'] as Timestamp?)
+                              ?.toDate();
+                          final assignedTo = taskData['assignedTo'] != null
+                              ? taskData['assignedTo']['name']
+                              : null;
+                          final List<dynamic> attachments =
+                              taskData['attachments'] ?? [];
+
+                          return Column(
+                            children: [
+                              ListTile(
+                                leading: Icon(
+                                  isDone
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                  color: isDone ? Colors.green : Colors.grey,
+                                ),
+                                title: Text(
+                                  taskData['title'] ?? 'ไม่มีชื่องาน',
+                                  style: TextStyle(
+                                    decoration: isDone
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: isDone
+                                        ? Colors.grey
+                                        : Colors.black87,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (dueDate != null)
+                                      Text(
+                                        'กำหนดส่ง: ${dueDate.day}/${dueDate.month}/${dueDate.year}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    if (assignedTo != null)
+                                      Text(
+                                        'ผู้รับผิดชอบ: $assignedTo',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF4F46E5),
+                                        ),
+                                      ),
+                                    _buildAdvisorAttachmentsList(attachments),
+                                  ],
+                                ),
+                              ),
+                              const Divider(height: 1),
+                            ],
+                          );
+                        }).toList(),
+                ),
+              );
+            }),
+
+            // งานที่สร้างเพิ่มเติมทั่วไป (ถ้ามี)
+            if (standaloneTasks.isNotEmpty) ...[
               const Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  'งานที่ต้องทำ',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'งานเพิ่มเติมอื่นๆ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
                   ),
                 ),
               ),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: tasks.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final taskData = tasks[index].data() as Map<String, dynamic>;
-                  final dueDate = (taskData['dueDate'] as Timestamp?)?.toDate();
+              ...standaloneTasks.map((taskDoc) {
+                final taskData = taskDoc.data() as Map<String, dynamic>;
+                final bool isDone = taskData['isDone'] ?? false;
+                final dueDate = (taskData['dueDate'] as Timestamp?)?.toDate();
+                final List<dynamic> attachments = taskData['attachments'] ?? [];
 
-                  return ListTile(
-                    leading: const Icon(Icons.check_box_outline_blank),
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: Icon(
+                      isDone ? Icons.check_box : Icons.check_box_outline_blank,
+                      color: isDone ? Colors.green : Colors.grey,
+                    ),
                     title: Text(taskData['title'] ?? 'ไม่มีชื่องาน'),
-                    subtitle: dueDate != null
-                        ? Text(
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (dueDate != null)
+                          Text(
                             'กำหนดส่ง: ${dueDate.day}/${dueDate.month}/${dueDate.year}',
-                          )
-                        : null,
-                  );
-                },
-              ),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        _buildAdvisorAttachmentsList(attachments),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ],
-          ),
+          ],
         );
       },
     );

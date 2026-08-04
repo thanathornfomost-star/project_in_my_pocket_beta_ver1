@@ -39,10 +39,13 @@ dependencies:
   firebase_core: ^4.12.1
   firebase_auth: ^6.5.6
   cloud_firestore: ^6.7.1
-  firebase_storage: ^13.4.6
-  image_picker: ^1.2.3
-  file_picker: ^11.0.3
+  flutter_launcher_icons: ^0.14.4
+  file_picker: ^10.3.8
+  firebase_storage: ^12.4.11
   url_launcher: ^6.3.2
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^17.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -53,7 +56,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  flutter_launcher_icons: 0.14.4
+
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
 flutter_launcher_icons:
   android: true
   ios: true

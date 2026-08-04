@@ -1,5 +1,184 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// --- Helper Function for File Upload & Launch ---
+
+Future<void> _pickAndUploadAttachment({
+  required BuildContext context,
+  required String projectId,
+  required DocumentReference taskRef,
+}) async {
+  try {
+    // แก้ไข: เรียกใช้ FilePicker ผ่าน FilePicker.platform
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      withData: kIsWeb, // ใช้ Data bytes บน Web
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final file = result.files.single;
+    final fileName = file.name;
+    final destination = 'projects/$projectId/tasks/${taskRef.id}/$fileName';
+
+    final ref = FirebaseStorage.instance.ref(destination);
+    UploadTask uploadTask;
+
+    if (kIsWeb || file.bytes != null) {
+      uploadTask = ref.putData(file.bytes!);
+    } else if (file.path != null) {
+      uploadTask = ref.putFile(File(file.path!));
+    } else {
+      throw Exception('ไม่สามารถอ่านไฟล์ได้');
+    }
+
+    final snapshot = await uploadTask.whenComplete(() {});
+    final downloadUrl = await snapshot.ref.getDownloadURL();
+
+    final newAttachment = {
+      'name': fileName,
+      'url': downloadUrl,
+      'uploadedAt': Timestamp.now(),
+    };
+
+    await taskRef.update({
+      'attachments': FieldValue.arrayUnion([newAttachment]),
+    });
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('แนบไฟล์เรียบร้อยแล้ว'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการแนบไฟล์: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+
+Future<void> _openAttachmentUrl(String url) async {
+  final uri = Uri.parse(url);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else {
+    debugPrint("Could not launch $url");
+  }
+}
+
+// Widget สำหรับแสดงรายการไฟล์แนบ
+Widget _buildAttachmentsList({
+  required BuildContext context,
+  required String projectId,
+  required DocumentSnapshot taskDoc,
+  required List<dynamic> attachments,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.attach_file, size: 16, color: Colors.grey),
+              SizedBox(width: 4),
+              Text(
+                'ไฟล์แนบ',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+          InkWell(
+            onTap: () => _pickAndUploadAttachment(
+              context: context,
+              projectId: projectId,
+              taskRef: taskDoc.reference,
+            ),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text(
+                '+ เพิ่มไฟล์',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF4F46E5),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      if (attachments.isEmpty)
+        const Padding(
+          padding: EdgeInsets.only(top: 2.0),
+          child: Text(
+            'ยังไม่มีไฟล์แนบ',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        )
+      else
+        // แก้ไข: ตัด .toList() ที่ซ้ำซ้อนกับการสเปรด (...) ออก
+        ...attachments.map((attachment) {
+          final Map<String, dynamic> item = Map<String, dynamic>.from(
+            attachment as Map,
+          );
+          final String name = item['name'] ?? 'ไฟล์แนบ';
+          final String url = item['url'] ?? '';
+
+          return InkWell(
+            onTap: () => _openAttachmentUrl(url),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.0),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.insert_drive_file,
+                    size: 14,
+                    color: Color(0xFF4F46E5),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF4F46E5),
+                        decoration: TextDecoration.underline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.download, size: 14, color: Colors.grey),
+                ],
+              ),
+            ),
+          );
+        }),
+    ],
+  );
+}
 
 // --- Data Models ---
 
@@ -118,28 +297,17 @@ class _TaskBoardScreenState extends State<TaskBoardScreen>
 
           final allTasks = snapshot.data?.docs ?? [];
 
-          // --- Client-Side Sorting ---
-          // Sort by the 'order' field first to respect the template order.
-          // Custom tasks without an 'order' field are placed at the end.
           allTasks.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
             final aOrder = aData['order'] as int?;
             final bOrder = bData['order'] as int?;
 
-            // If both have an order, compare them.
             if (aOrder != null && bOrder != null) {
               return aOrder.compareTo(bOrder);
             }
-            // If only 'a' has an order, it comes first.
-            if (aOrder != null) {
-              return -1;
-            }
-            // If only 'b' has an order, it comes first.
-            if (bOrder != null) {
-              return 1;
-            }
-            // If neither has an order (two custom tasks), maintain their original relative order (or treat as equal).
+            if (aOrder != null) return -1;
+            if (bOrder != null) return 1;
             return 0;
           });
 
@@ -298,61 +466,107 @@ class _TemplateTaskTile extends StatelessWidget {
         ? Member.fromMap(taskData['assignedTo'])
         : null;
     final dueDate = (taskData['dueDate'] as Timestamp?)?.toDate();
+    final List<dynamic> attachments = taskData['attachments'] ?? [];
 
-    return ListTile(
-      leading: Checkbox(
-        value: isDone,
-        onChanged: (val) => taskDoc.reference.update({'isDone': val}),
-        activeColor: const Color(0xFF4F46E5),
-      ),
-      title: Text(
-        taskData['title'] ?? 'ไม่มีชื่องาน',
-        style: TextStyle(
-          decoration: isDone ? TextDecoration.lineThrough : null,
-          color: isDone ? Colors.grey : Colors.black87,
-        ),
-      ),
-      subtitle: (dueDate != null)
-          ? Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: Row(
-                children: [
-                  if (dueDate != null)
-                    Text(
-                      "${dueDate.day}/${dueDate.month}/${dueDate.year}",
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                ],
-              ),
-            )
-          : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Column(
         children: [
-          if (assignedTo != null)
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: const Color(0xFF4F46E5).withOpacity(0.2),
-              child: Text(
-                assignedTo.emoji,
-                style: const TextStyle(fontSize: 16),
+          Row(
+            children: [
+              Checkbox(
+                value: isDone,
+                onChanged: (val) => taskDoc.reference.update({'isDone': val}),
+                activeColor: const Color(0xFF4F46E5),
               ),
-            )
-          else
-            const CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.black12,
-              child: Icon(Icons.person_outline, size: 18, color: Colors.grey),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      taskData['title'] ?? 'ไม่มีชื่องาน',
+                      style: TextStyle(
+                        decoration: isDone ? TextDecoration.lineThrough : null,
+                        color: isDone ? Colors.grey : Colors.black87,
+                      ),
+                    ),
+                    if (dueDate != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          "${dueDate.day}/${dueDate.month}/${dueDate.year}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (assignedTo != null)
+                CircleAvatar(
+                  radius: 14,
+                  // แก้ไข: เปลี่ยนกับ withValues(alpha: ...) แทน withOpacity
+                  backgroundColor: const Color(
+                    0xFF4F46E5,
+                  ).withValues(alpha: 0.2),
+                  child: Text(
+                    assignedTo.emoji,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                )
+              else
+                const CircleAvatar(
+                  radius: 14,
+                  backgroundColor: Colors.black12,
+                  child: Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              IconButton(
+                icon: const Icon(
+                  Icons.attach_file,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onPressed: () => _pickAndUploadAttachment(
+                  context: context,
+                  projectId: projectId,
+                  taskRef: taskDoc.reference,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onPressed: () => _showEditTaskDialog(
+                  context,
+                  taskDoc: taskDoc,
+                  projectId: projectId,
+                  teamMembers: teamMembers,
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(
+              left: 48.0,
+              right: 12.0,
+              bottom: 8.0,
             ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 20),
-            onPressed: () => _showEditTaskDialog(
-              context,
-              taskDoc: taskDoc,
+            child: _buildAttachmentsList(
+              context: context,
               projectId: projectId,
-              teamMembers: teamMembers,
+              taskDoc: taskDoc,
+              attachments: attachments,
             ),
           ),
+          const Divider(height: 1),
         ],
       ),
     );
@@ -384,23 +598,17 @@ class _UserTasksView extends StatelessWidget {
       );
     }
 
-    // --- New Logic to Separate and Sort Tasks ---
-
-    // 1. Separate chapters from all other tasks.
     final chapters = userTasks.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       return data['isChapter'] == true;
     }).toList();
 
-    // Create a map from chapterId to chapterDoc for quick lookup.
     final chapterMap = {for (var c in chapters) c.id: c};
 
-    // 2. Initialize the grouped tasks map.
     final Map<DocumentSnapshot, List<DocumentSnapshot>> groupedTasks = {
       for (var c in chapters) c: [],
     };
 
-    // 3. Separate standalone tasks from sub-tasks.
     final List<DocumentSnapshot> customUserTasks = [];
     DocumentSnapshot? lastSeenChapter;
 
@@ -409,36 +617,29 @@ class _UserTasksView extends StatelessWidget {
 
       if (taskData['isChapter'] == true) {
         lastSeenChapter = task;
-        continue; // Skip to next task
+        continue;
       }
 
-      // It's a sub-task. Now find its parent.
       final parentId = taskData['parentChapterId'] as String?;
 
       if (parentId != null) {
-        // It's a user-added sub-task with an explicit parent.
         final parentChapter = chapterMap[parentId];
         if (parentChapter != null) {
           groupedTasks[parentChapter]!.add(task);
         } else {
-          // Parent chapter not found, treat as standalone.
           customUserTasks.add(task);
         }
       } else if (taskData['isGeneralTemplate'] == true) {
-        // It's an original template sub-task. Use the last seen chapter.
         if (lastSeenChapter != null) {
           groupedTasks[lastSeenChapter]!.add(task);
         } else {
-          // Template sub-task with no preceding chapter.
           customUserTasks.add(task);
         }
       } else {
-        // It's a standalone task (created with the main FAB).
         customUserTasks.add(task);
       }
     }
 
-    // 4. Sort the chapters themselves based on their 'order' field.
     final sortedGroupedEntries = groupedTasks.entries.toList()
       ..sort((a, b) {
         final aData = a.key.data() as Map<String, dynamic>;
@@ -451,7 +652,6 @@ class _UserTasksView extends StatelessWidget {
         return 0;
       });
 
-    // 5. Sort sub-tasks within each chapter.
     for (var entry in sortedGroupedEntries) {
       entry.value.sort((a, b) {
         final aData = a.data() as Map<String, dynamic>;
@@ -477,7 +677,6 @@ class _UserTasksView extends StatelessWidget {
       });
     }
 
-    // 6. Sort the custom tasks: incomplete first, then by due date.
     customUserTasks.sort((a, b) {
       final aData = a.data() as Map<String, dynamic>;
       final bData = b.data() as Map<String, dynamic>;
@@ -486,11 +685,11 @@ class _UserTasksView extends StatelessWidget {
       final aDate = aData['dueDate'] as Timestamp?;
       final bDate = bData['dueDate'] as Timestamp?;
 
-      if (aIsDone != bIsDone) return aIsDone ? 1 : -1; // Incomplete tasks first
+      if (aIsDone != bIsDone) return aIsDone ? 1 : -1;
       if (aDate == null && bDate == null) return 0;
-      if (aDate == null) return 1; // Tasks without due date at the end
+      if (aDate == null) return 1;
       if (bDate == null) return -1;
-      return aDate.compareTo(bDate); // Sort by due date ascending
+      return aDate.compareTo(bDate);
     });
 
     return SingleChildScrollView(
@@ -498,7 +697,6 @@ class _UserTasksView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section 1: Render grouped tasks (Chapters and their sub-tasks)
           if (sortedGroupedEntries.isNotEmpty) ...[
             ...sortedGroupedEntries.map((entry) {
               final chapterDoc = entry.key;
@@ -528,7 +726,7 @@ class _UserTasksView extends StatelessWidget {
                             context,
                             projectId: projectId,
                             teamMembers: teamMembers,
-                            parentChapterId: chapterDoc.id, // Pass chapter ID
+                            parentChapterId: chapterDoc.id,
                           );
                         },
                       ),
@@ -538,18 +736,14 @@ class _UserTasksView extends StatelessWidget {
                     return _UserTaskListItem(
                       taskDoc: subTaskDoc,
                       teamMembers: teamMembers,
-                      projectId: projectId, // Pass projectId
+                      projectId: projectId,
                     );
                   }).toList(),
                 ),
               );
             }),
-            const SizedBox(
-              height: 16,
-            ), // Spacing between template tasks and custom tasks
+            const SizedBox(height: 16),
           ],
-
-          // Section 2: Render custom-created tasks
           if (customUserTasks.isNotEmpty) ...[
             const Padding(
               padding: EdgeInsets.only(top: 32, bottom: 8, left: 4, right: 4),
@@ -581,11 +775,12 @@ class _UserTasksView extends StatelessWidget {
 class _UserTaskListItem extends StatelessWidget {
   final DocumentSnapshot taskDoc;
   final List<Member> teamMembers;
-  final String projectId; // Add projectId
+  final String projectId;
+
   const _UserTaskListItem({
     required this.taskDoc,
     required this.teamMembers,
-    required this.projectId, // Require projectId
+    required this.projectId,
   });
 
   @override
@@ -597,111 +792,137 @@ class _UserTaskListItem extends StatelessWidget {
         dueDate != null && !isDone && dueDate.isBefore(DateTime.now());
     final Map<String, dynamic>? assignedToData =
         taskData['assignedTo'] as Map<String, dynamic>?;
+    final List<dynamic> attachments = taskData['attachments'] ?? [];
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.05),
+      // แก้ไข: เปลี่ยนใช้ withValues(alpha: ...) แทน withOpacity
+      shadowColor: Colors.black.withValues(alpha: 0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ClipRRect(
-        // Use ClipRRect instead of InkWell for onTap if no edit
-        borderRadius: BorderRadius.circular(
-          12,
-        ), // Apply border radius to the clip
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          child: Row(
-            children: [
-              Checkbox(
-                value: isDone,
-                onChanged: (val) async {
-                  await taskDoc.reference.update({'isDone': val});
-                  // Call the function to check parent chapter status
-                  final parentChapterId =
-                      taskData['parentChapterId'] as String?;
-                  if (parentChapterId != null) {
-                    _checkAndToggleParentChapter(projectId, parentChapterId);
-                  }
-                },
-                activeColor: const Color(0xFF4F46E5),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      taskData['title'] ?? 'ไม่มีชื่องาน',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: isDone ? Colors.grey : Colors.black87,
-                        decoration: isDone ? TextDecoration.lineThrough : null,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Checkbox(
+                  value: isDone,
+                  onChanged: (val) async {
+                    await taskDoc.reference.update({'isDone': val});
+                    final parentChapterId =
+                        taskData['parentChapterId'] as String?;
+                    if (parentChapterId != null) {
+                      _checkAndToggleParentChapter(projectId, parentChapterId);
+                    }
+                  },
+                  activeColor: const Color(0xFF4F46E5),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        taskData['title'] ?? 'ไม่มีชื่องาน',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: isDone ? Colors.grey : Colors.black87,
+                          decoration: isDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
                       ),
-                    ),
-                    if (dueDate != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 12,
-                            color: isOverdue
-                                ? Colors.red.shade700
-                                : Colors.grey,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            "${dueDate.day}/${dueDate.month}/${dueDate.year}",
-                            style: TextStyle(
-                              fontSize: 12,
+                      if (dueDate != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 12,
                               color: isOverdue
                                   ? Colors.red.shade700
                                   : Colors.grey,
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${dueDate.day}/${dueDate.month}/${dueDate.year}",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isOverdue
+                                    ? Colors.red.shade700
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              if (assignedToData != null)
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: const Color(0xFF4F46E5).withOpacity(0.2),
-                  child: Text(
-                    assignedToData['emoji'] ?? '?',
-                    style: const TextStyle(fontSize: 16),
                   ),
-                )
-              else
-                const CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.black12,
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 18,
+                ),
+                const SizedBox(width: 8),
+                if (assignedToData != null)
+                  CircleAvatar(
+                    radius: 16,
+                    // แก้ไข: เปลี่ยนใช้ withValues(alpha: ...)
+                    backgroundColor: const Color(
+                      0xFF4F46E5,
+                    ).withValues(alpha: 0.2),
+                    child: Text(
+                      assignedToData['emoji'] ?? '?',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  )
+                else
+                  const CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.black12,
+                    child: Icon(
+                      Icons.person_outline,
+                      size: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.attach_file,
                     color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () => _pickAndUploadAttachment(
+                    context: context,
+                    projectId: projectId,
+                    taskRef: taskDoc.reference,
                   ),
                 ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: Colors.grey,
-                  size: 20,
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: Colors.grey,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    _showEditTaskDialog(
+                      context,
+                      taskDoc: taskDoc,
+                      projectId: projectId,
+                      teamMembers: teamMembers,
+                    );
+                  },
                 ),
-                onPressed: () {
-                  _showEditTaskDialog(
-                    context,
-                    taskDoc: taskDoc,
-                    projectId: projectId,
-                    teamMembers: teamMembers,
-                  );
-                },
+              ],
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 40.0),
+              child: _buildAttachmentsList(
+                context: context,
+                projectId: projectId,
+                taskDoc: taskDoc,
+                attachments: attachments,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -762,8 +983,6 @@ void _showTaskFormDialog(
         (m) => m.id == taskData!['assignedTo']['uid'],
       );
     } catch (e) {
-      // If member not found in the current list, leave selectedMember as null.
-      // The dropdown will show the hint text.
       selectedMember = null;
     }
   }
@@ -933,8 +1152,7 @@ void _showTaskFormDialog(
                                 'isTemplate': taskData?['isTemplate'] ?? false,
                                 'isChapter': taskData?['isChapter'] ?? false,
                                 if (parentChapterId != null)
-                                  'parentChapterId':
-                                      parentChapterId, // Add parentChapterId
+                                  'parentChapterId': parentChapterId,
                               };
 
                               try {
@@ -942,6 +1160,7 @@ void _showTaskFormDialog(
                                   await taskDoc.reference.update(data);
                                 } else {
                                   data['isDone'] = false;
+                                  data['attachments'] = [];
                                   data['createdAt'] =
                                       FieldValue.serverTimestamp();
                                   await FirebaseFirestore.instance
@@ -949,7 +1168,6 @@ void _showTaskFormDialog(
                                       .doc(projectId)
                                       .collection('tasks')
                                       .add(data);
-                                  // After adding a sub-task, check its parent chapter
                                   if (parentChapterId != null) {
                                     _checkAndToggleParentChapter(
                                       projectId,
@@ -1010,8 +1228,6 @@ Future<void> _checkAndToggleParentChapter(
         .get();
 
     if (subTasksSnapshot.docs.isEmpty) {
-      // If there are no sub-tasks, the chapter itself should probably not be marked as done automatically.
-      // Or, it could be marked as not done. Let's default to not done if no subtasks.
       await FirebaseFirestore.instance
           .collection('Events')
           .doc(projectId)
@@ -1026,7 +1242,6 @@ Future<void> _checkAndToggleParentChapter(
       return data['isDone'] == true;
     });
 
-    // Update the parent chapter's isDone status
     await FirebaseFirestore.instance
         .collection('Events')
         .doc(projectId)
