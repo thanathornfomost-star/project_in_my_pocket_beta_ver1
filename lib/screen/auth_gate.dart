@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_dashboard_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/dashboard_screen.dart';
-import 'package:project_in_my_pocket_beta_ver1/screen/login_screen.dart';
+import 'package:project_in_my_pocket_beta_ver1/screen/login_screen.dart'; // ต้องมีไฟล์ login_screen.dart
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -13,12 +13,12 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // ถ้ายังไม่ได้ล็อกอิน ให้ไปที่หน้า Login
+        // ถ้ายังไม่ได้ล็อกอิน (User เป็น null) ให้ไปที่หน้า Login
         if (!snapshot.hasData) {
           return const LoginScreen();
         }
 
-        // ถ้าล็อกอินแล้ว ให้ตรวจสอบ Role จาก Firestore
+        // ถ้าล็อกอินแล้ว (User ไม่เป็น null) ให้ตรวจสอบ Role จาก Firestore
         return RoleBasedRedirect(user: snapshot.data!);
       },
     );
@@ -45,10 +45,9 @@ class RoleBasedRedirect extends StatelessWidget {
           );
         }
 
-        // หากเกิดข้อผิดพลาดในการดึงข้อมูล
+        // หากเกิดข้อผิดพลาดในการดึงข้อมูล หรือไม่พบข้อมูลผู้ใช้ใน Firestore
+        // เราจะถือว่าเป็นนักเรียนโดยค่าเริ่มต้น หรือแสดงหน้า Dashboard ของนักเรียน
         if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-          // อาจจะแสดงหน้าจอข้อผิดพลาด หรือหน้าจอเริ่มต้นสำหรับนักเรียน
-          // ในที่นี้เราจะให้ไปที่หน้าของนักเรียนเป็นค่าเริ่มต้น
           return const DashboardScreen();
         }
 

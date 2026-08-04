@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _subjectController = TextEditingController();
   final _teacherSchoolController = TextEditingController();
+  final _studentSchoolController = TextEditingController();
 
   // State Variables
   bool _isObscurePassword = true;
@@ -29,15 +30,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isAcceptedTerms = false;
 
   // Dropdown Values (สำหรับนักเรียน)
-  String? _selectedSchool;
   String? _selectedLevel;
 
   // ข้อมูลจำลองสำหรับ Dropdown
-  final List<String> _schools = [
-    'โรงเรียนขุขันธ์',
-    'โรงเรียนมัธยมสาธิต',
-    'โรงเรียนนานาชาติรวมมิตร',
-  ];
   final List<String> _levels = [
     'มัธยมศึกษาปีที่ 1',
     'มัธยมศึกษาปีที่ 2',
@@ -56,6 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _confirmPasswordController.dispose();
     _subjectController.dispose();
     _teacherSchoolController.dispose();
+    _studentSchoolController.dispose();
     super.dispose();
   }
 
@@ -96,7 +92,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 : '🧑‍🏫', // Default emoji
             // Add role-specific data
             if (_selectedRoleIndex == 0) ...{
-              'school': _selectedSchool,
+              'school': _studentSchoolController.text.trim(),
               'level': _selectedLevel,
             } else ...{
               'subject': _subjectController.text.trim(),
@@ -381,21 +377,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Column(
       key: const ValueKey('StudentFields'),
       children: [
-        DropdownButtonFormField<String>(
-          initialValue: _selectedSchool,
+        TextFormField(
+          controller: _studentSchoolController,
           decoration: const InputDecoration(
             labelText: 'โรงเรียน',
             border: OutlineInputBorder(),
           ),
-          items: _schools.map((String value) {
-            return DropdownMenuItem<String>(value: value, child: Text(value));
-          }).toList(),
-          onChanged: (newValue) {
-            setState(() {
-              _selectedSchool = newValue;
-            });
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return "โปรดกรอกชื่อโรงเรียน";
+            }
+            return null;
           },
-          validator: (value) => value == null ? "โปรดเลือกโรงเรียน" : null,
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
