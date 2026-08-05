@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:project_in_my_pocket_beta_ver1/screen/student/file_manager_widget.dart';
 
 // --- Data Models ---
 
@@ -345,6 +346,11 @@ class _TemplateTaskTile extends StatelessWidget {
               child: Icon(Icons.person_outline, size: 18, color: Colors.grey),
             ),
           IconButton(
+            icon: const Icon(Icons.attach_file, color: Colors.grey, size: 20),
+            onPressed: () =>
+                _showFileManagerDialog(context, projectId, taskDoc.id),
+          ),
+          IconButton(
             icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 20),
             onPressed: () => _showEditTaskDialog(
               context,
@@ -687,6 +693,16 @@ class _UserTaskListItem extends StatelessWidget {
                 ),
               IconButton(
                 icon: const Icon(
+                  Icons.attach_file,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onPressed: () {
+                  _showFileManagerDialog(context, projectId, taskDoc.id);
+                },
+              ),
+              IconButton(
+                icon: const Icon(
                   Icons.edit_outlined,
                   color: Colors.grey,
                   size: 20,
@@ -992,6 +1008,28 @@ void _showTaskFormDialog(
           );
         },
       );
+    },
+  );
+}
+
+// --- Dialog for File Management ---
+void _showFileManagerDialog(
+  BuildContext context,
+  String projectId,
+  String taskId,
+) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    constraints: BoxConstraints(
+      maxHeight:
+          MediaQuery.of(context).size.height * 0.8, // 80% of screen height
+    ),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+    ),
+    builder: (context) {
+      return FileManagerWidget(projectId: projectId, taskId: taskId);
     },
   );
 }
