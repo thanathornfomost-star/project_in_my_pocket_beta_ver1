@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "C:\\Users\\FOMOkaka\\OneDrive\\Documents\\GitHub\\project_in_my_pocket_beta_ver1",
+      "program": "lib/main.dart"
+    }
+  ]
+}

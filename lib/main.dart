@@ -32,22 +32,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      // เมื่อแอปกลับมาทำงาน ให้ไปที่ SplashScreen
-      // การทำเช่นนี้จะล้างหน้าจอเก่าทั้งหมดออก
-      _navigatorKey.currentState?.pushAndRemoveUntil(
-        PageRouteBuilder(
-          pageBuilder: (_, _, _) => const SplashScreen(),
-          transitionDuration: const Duration(seconds: 0),
-        ),
-        (route) => false,
-      );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
