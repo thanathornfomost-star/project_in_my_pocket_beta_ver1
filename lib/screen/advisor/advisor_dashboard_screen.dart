@@ -186,7 +186,6 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
                   color: Color(0xFF64748B),
                 ),
                 onPressed: () {
-                  // TODO: Implement notification screen
                 },
               ),
               const SizedBox(width: 8),
