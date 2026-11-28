@@ -958,9 +958,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     );
 
                                     try {
-                                      final newProjectRef = await FirebaseFirestore.instance
-                                          .collection('Events')
-                                          .add(newProjectData);
+                                      final newProjectRef =
+                                          await FirebaseFirestore.instance
+                                              .collection('Events')
+                                              .add(newProjectData);
+                                      if (!context.mounted) return;
                                       debugPrint(
                                         "--- [4] SUCCESS: Data uploaded to Firestore! ID: ${newProjectRef.id} ---",
                                       );
@@ -973,11 +975,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         newProjectRef.id,
                                         localType,
                                       );
+                                      if (!context.mounted) return;
                                       debugPrint(
                                         "--- [6] SUCCESS: Finished createTasksFromTemplate call. ---",
                                       );
 
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         Navigator.pop(context);
                                         ScaffoldMessenger.of(
                                           context,
@@ -994,7 +997,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       debugPrint(
                                         "--- [!] FIREBASE ERROR: $e ---",
                                       );
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
@@ -1204,6 +1207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 .where('inviteCode', isEqualTo: inviteCode)
                                 .limit(1)
                                 .get();
+                            if (!context.mounted) return;
 
                             if (projectQuery.docs.isEmpty) {
                               if (mounted) {
@@ -1246,6 +1250,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     newMemberData,
                                   ]),
                                 });
+                                if (!context.mounted) return;
 
                                 if (mounted) {
                                   Navigator.pop(context);
@@ -1560,6 +1565,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _deleteProject(String projectId, String projectName) async {
+    final messenger = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1579,12 +1585,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+    if (!context.mounted) return;
 
     if (confirm != true) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('กำลังลบโครงงาน "$projectName"...')));
+    messenger.showSnackBar(
+      SnackBar(content: Text('กำลังลบโครงงาน "$projectName"...')),
+    );
 
     final firestore = FirebaseFirestore.instance;
     final projectRef = firestore.collection('Events').doc(projectId);
@@ -1592,16 +1599,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       // Delete all tasks in the 'tasks' subcollection
       final tasksSnapshot = await projectRef.collection('tasks').get();
+      if (!context.mounted) return;
       if (tasksSnapshot.docs.isNotEmpty) {
         final batch = firestore.batch();
         for (final taskDoc in tasksSnapshot.docs) {
           batch.delete(taskDoc.reference);
         }
         await batch.commit();
+        if (!context.mounted) return;
       }
 
       // Delete the project document itself
       await projectRef.delete();
+      if (!context.mounted) return;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

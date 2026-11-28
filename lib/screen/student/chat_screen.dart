@@ -46,9 +46,6 @@ class ChatScreen extends StatelessWidget {
             final int memberCount = members.length;
             final bool hasTeacher = members.any((m) => m['role'] == 'teacher');
 
-            final subtitleText =
-                'สมาชิก $memberCount คน ${hasTeacher ? '(มีที่ปรึกษา)' : ''}';
-
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               elevation: 1,

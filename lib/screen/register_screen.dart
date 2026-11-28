@@ -112,6 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else if (e.code == 'email-already-in-use') {
           message = 'อีเมลนี้ถูกใช้งานแล้ว';
         }
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));

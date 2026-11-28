@@ -44,24 +44,6 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
     _pages.add(const AdvisorProfileScreen()); // Profile Page
   }
 
-  // ฟังก์ชันสำหรับ map สถานะเป็นสี
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'เสนอหัวข้อ':
-        return Colors.blue.shade700;
-      case 'กำลังดำเนินการ':
-        return Colors.orange.shade700;
-      case 'รอสอบ':
-        return Colors.purple.shade700;
-      case 'เสร็จสิ้น':
-        return Colors.green.shade700;
-      case 'แก้ไข':
-        return Colors.red.shade700;
-      default:
-        return Colors.grey.shade700;
-    }
-  }
-
   void _navigateToProjectDetails(ProjectGroup group) {
     Navigator.push(
       context,
@@ -135,7 +117,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
                           await _joinProjectWithCode(
                             codeController.text.trim(),
                           );
-                          if (mounted) {
+                          if (mounted && context.mounted) {
                             setDialogState(() => isLoading = false);
                             Navigator.pop(context);
                           }
@@ -531,6 +513,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
         .collection('users')
         .doc(user!.uid)
         .get();
+    if (!mounted) return;
     final userData = userDoc.data();
 
     if (userData == null) {
@@ -548,6 +531,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
         .where('inviteCode', isEqualTo: code)
         .limit(1)
         .get();
+    if (!mounted) return;
 
     if (query.docs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -570,6 +554,7 @@ class _AdvisorDashboardScreenState extends State<AdvisorDashboardScreen> {
       'memberUids': FieldValue.arrayUnion([user.uid]),
       'members': FieldValue.arrayUnion([newMemberData]),
     });
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

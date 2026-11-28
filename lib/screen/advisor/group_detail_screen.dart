@@ -20,24 +20,6 @@ class GroupDetailScreen extends StatefulWidget {
 }
 
 class _GroupDetailScreenState extends State<GroupDetailScreen> {
-  // Re-using the status color logic. It might be better to move this to a utility file later.
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'เสนอหัวข้อ':
-        return Colors.blue.shade700;
-      case 'กำลังดำเนินการ':
-        return Colors.orange.shade700;
-      case 'รอสอบ':
-        return Colors.purple.shade700;
-      case 'เสร็จสิ้น':
-        return Colors.green.shade700;
-      case 'แก้ไข':
-        return Colors.red.shade700;
-      default:
-        return Colors.grey.shade700;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

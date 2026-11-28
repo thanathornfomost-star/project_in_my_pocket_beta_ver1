@@ -77,6 +77,7 @@ class _LoginScreenState extends State<LoginScreen>
           e.code == 'invalid-credential') {
         message = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
