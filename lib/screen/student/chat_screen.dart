@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/student/project_chat_screen.dart';
 
 class ChatScreen extends StatelessWidget {

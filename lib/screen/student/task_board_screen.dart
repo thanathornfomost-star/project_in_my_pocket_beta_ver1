@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // --- Data Models ---
 
@@ -317,11 +317,10 @@ class _TemplateTaskTile extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4.0),
               child: Row(
                 children: [
-                  if (dueDate != null)
-                    Text(
-                      "${dueDate.day}/${dueDate.month}/${dueDate.year}",
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
+                  Text(
+                    "${dueDate.day}/${dueDate.month}/${dueDate.year}",
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
             )
@@ -332,7 +331,7 @@ class _TemplateTaskTile extends StatelessWidget {
           if (assignedTo != null)
             CircleAvatar(
               radius: 16,
-              backgroundColor: const Color(0xFF4F46E5).withOpacity(0.2),
+              backgroundColor: const Color(0xFF4F46E5).withValues(alpha: 0.2),
               child: Text(
                 assignedTo.emoji,
                 style: const TextStyle(fontSize: 16),
@@ -601,7 +600,7 @@ class _UserTaskListItem extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.05),
+      shadowColor: Colors.black.withValues(alpha: 0.05),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ClipRRect(
         // Use ClipRRect instead of InkWell for onTap if no edit
@@ -669,7 +668,7 @@ class _UserTaskListItem extends StatelessWidget {
               if (assignedToData != null)
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: const Color(0xFF4F46E5).withOpacity(0.2),
+                  backgroundColor: const Color(0xFF4F46E5).withValues(alpha: 0.2),
                   child: Text(
                     assignedToData['emoji'] ?? '?',
                     style: const TextStyle(fontSize: 16),
@@ -932,9 +931,8 @@ void _showTaskFormDialog(
                                 'assignedTo': selectedMember?.toMap(),
                                 'isTemplate': taskData?['isTemplate'] ?? false,
                                 'isChapter': taskData?['isChapter'] ?? false,
-                                if (parentChapterId != null)
-                                  'parentChapterId':
-                                      parentChapterId, // Add parentChapterId
+                                'parentChapterId':
+                                      ?parentChapterId, // Add parentChapterId
                               };
 
                               try {

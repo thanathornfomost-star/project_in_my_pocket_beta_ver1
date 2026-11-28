@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_chat_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/advisor_profile_screen.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/advisor/group_detail_screen.dart';

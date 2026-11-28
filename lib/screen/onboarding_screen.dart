@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'login_screen.dart';
 // Note: หากต้องการแสดงภาพ SVG อย่าลืมลงแพ็กเกจ flutter_svg ใน pubspec.yaml
 // แล้ว import 'package:flutter_svg/flutter_svg.dart'; ตรงนี้นะครับ

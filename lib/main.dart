@@ -1,5 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:project_in_my_pocket_beta_ver1/screen/splash_screen.dart';
 import 'firebase_options.dart'; // ไฟล์ที่ได้จาก FlutterFire CLI
 
